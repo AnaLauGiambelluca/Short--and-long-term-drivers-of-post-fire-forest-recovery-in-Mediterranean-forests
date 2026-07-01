@@ -623,3 +623,65 @@ Export.image.toDrive({
   folder:'gee/incendios_CCDC_coef',
   maxPixels: 1e10
 });
+
+
+// Extract the start time
+
+var tiempo= image.select('tStart').toArray().toArray();
+var image_array=tiempo.arrayProject([0]);
+
+
+// First
+
+var uno = image_array.arraySlice(0,0,1).rename('t1');
+var uno=uno.arrayProject([0]);
+var uno=uno.arrayFlatten([['t1']]);
+
+// Second
+var dos = image_array.arraySlice(0,1,2).rename('t2');
+var dos=dos.arrayProject([0]);
+var dos=dos.arrayFlatten([['t2']]);
+
+//Third 
+var tres = image_array.arraySlice(0,2,3).rename('t3');
+var tres=tres.arrayProject([0]);
+var tres=tres.arrayFlatten([['t3']]);
+
+// Fourth
+var cuatro = image_array.arraySlice(0,3,4).rename('t4');
+var cuatro=cuatro.arrayProject([0]);
+var cuatro=cuatro.arrayFlatten([['t4']]);
+
+//Fifth
+var cinco = image_array.arraySlice(0,4,5).rename('t5');
+var cinco=cinco.arrayProject([0]);
+var cinco=cinco.arrayFlatten([['t5']]);
+
+//Sixth
+var seis = image_array.arraySlice(0,5,6).rename('t6');
+var seis=seis.arrayProject([0]);
+var seis=seis.arrayFlatten([['t6']]);
+
+
+
+var start_1= uno.addBands([dos,tres]);
+var start_2=cuatro.addBands([cinco,seis]);
+
+Export.image.toDrive({
+  image: start_1,
+  crs: 'EPSG:4326',
+  description:'Catalonia_tStart_123',
+  scale:30,
+  folder:'gee/incendios_CCDC',
+  maxPixels: 1e10
+});
+
+
+Export.image.toDrive({
+  image: start_2,
+  crs: 'EPSG:4326',
+  description:'Catalonia_tStart_456',
+  scale:30,
+  folder:'gee/incendios_CCDC',
+  maxPixels: 1e10
+});
