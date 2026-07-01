@@ -2,20 +2,17 @@
 // Author: Ana Laura Giambelluca
 
 
+// We need to import the wildfire layer of each region. You can find this layer in Layers/Wildfires/...(Region).../ (Region)_CCDC.zip
+var area=Catalonia_CCDC;
 
-var area=Wildfire_Catalonia;
 
-Map.centerObject(area,12);
-var inputParams = {
-  start: '1983-01-01',
-  end: '2020-12-31',
-};
-
+// Load the Landsat 4 Collection
 var Landsat4 = ee.ImageCollection('LANDSAT/LT04/C02/T1_L2')
-    .filterDate('1983-01-01', '1993-06-24')
-    .filterMetadata('CLOUD_COVER','Less_Than',50)
-    .filterBounds(area)
-    .map(mask457sr)
+    .filterDate('1983-01-01', '1993-06-24') // Filter date
+    .filterMetadata('CLOUD_COVER','Less_Than',50) // Filter percentage of cloud
+    .filterBounds(area) // Filter bounding box
+    .map(mask457sr) // Apply cloud mask
+//Calculate the NBR index
     .map(function addNBR(image) {
     var NBRI = image.expression ('((NIR - SWIR)+0.000000000000000000001) / (NIR + SWIR)', {
     'NIR': image.select ('SR_B4'),  
@@ -23,6 +20,7 @@ var Landsat4 = ee.ImageCollection('LANDSAT/LT04/C02/T1_L2')
     
     return image.addBands([NBRI])}); 
 
+// Load the Landsat 5 Collection
 var Landsat5 = ee.ImageCollection('LANDSAT/LT05/C02/T1_L2')
     .filterDate('1984-03-16', '2012-05-05')
     .filterMetadata('CLOUD_COVER','Less_Than',50)
@@ -36,10 +34,11 @@ var Landsat5 = ee.ImageCollection('LANDSAT/LT05/C02/T1_L2')
     return image.addBands([NBRI])}); 
 
 
-
+// Cloud mask for Landsat 4, 5 and 7
 function mask457sr(image){
   var qaMask=image.select('QA_PIXEL').bitwiseAnd(parseInt('11111',2)).eq(0);
   var saturationMask=image.select('QA_RADSAT').eq(0);
+// Apply the scaling factors to the appropriate bands.
   var opticalBands=image.select('SR_B.').multiply(0.0000275).add(-0.2);
   var thermalBand=image.select('ST_B6').multiply(0.00341802).add(149.0);
 
@@ -49,7 +48,8 @@ function mask457sr(image){
   .updateMask(qaMask)
   .updateMask(saturationMask)
   .clip(area);}
-  
+
+// Load the Landsat 7 Collection
   var Landsat7 = ee.ImageCollection('LANDSAT/LE07/C02/T1_L2')
     .filterDate('1999-05-28', '2020-12-31')
     .filterMetadata('CLOUD_COVER','Less_Than',50)
@@ -61,7 +61,8 @@ function mask457sr(image){
     'SWIR': image.select ('SR_B7')}).rename('NBR');
     
     return image.addBands([NBRI])}); 
-  
+
+// Cloud mask for Landsat 8
 function maskL8sr(image) {
 
   var qaMask = image.select('QA_PIXEL').bitwiseAnd(parseInt('11111', 2)).eq(0);
@@ -79,7 +80,7 @@ function maskL8sr(image) {
       .updateMask(saturationMask).clip(area);
 }
 
-  
+// Load the Landsat 8 Collection  
 var Landsat8 = ee.ImageCollection("LANDSAT/LC08/C02/T1_L2")
                             .filterDate('2013-03-18', '2020-12-31')
                             .filterMetadata("CLOUD_COVER","less_than", 50)
@@ -91,10 +92,27 @@ var Landsat8 = ee.ImageCollection("LANDSAT/LC08/C02/T1_L2")
     'SWIR': image.select ('SR_B7')}).rename('NBR');
     
     return image.addBands([NBRI])}); 
-    
+
+// We merge all collections
+var filteredLand=Landsat4.merge(Landsat5).merge(Landsat7).merge(Landsat8);
+
+// We sort considering the adquisition date
+var filteredLandsat=filteredLand.sort('DATE_ACQUIRED');
 
 
+///////////////////////////////////////////////////////////////////////////////////////////////////////////
+//                                                   CCDC
+///////////////////////////////////////////////////////////////////////////////////////////////////////////
 
+//Step 1: Extract breakage raster
+
+// We set the study period
+var inputParams = {
+  start: '1983-01-01',
+  end: '2020-12-31',
+};
+
+// We set the parameters
 var changeDetectionParameters = {
   breakpointBands: ['NBR'],
   minObservations: 3,
@@ -104,28 +122,23 @@ var changeDetectionParameters = {
   lambda: 0.002,
   maxIterations: 25000
 };
-print(Landsat4);
-print(Landsat5);
-print(Landsat7);
-print(Landsat8);
 
-
-var filteredLand=Landsat4.merge(Landsat5).merge(Landsat7).merge(Landsat8);
-
-var filteredLandsat=filteredLand.sort('DATE_ACQUIRED');
-
-
-// Poner la colección de Landsat en los parámetros de detección de cambios
+// Put the Landsat collection into the change detection parameters
 changeDetectionParameters.collection = filteredLandsat.select('NBR');
 
-// Ejecutar CCDC
+// Run CCDC
 var results = ee.Algorithms.TemporalSegmentation.Ccdc(changeDetectionParameters);
 
 
-// Combinar parámetros para guardarlos como metadatos
+// Combine parameters to save them as metadata
 var paramsCombined = ee.Dictionary(changeDetectionParameters).combine(inputParams).remove(['collection']);
 
 
+// We export the results. Because the files are large, you can view them at the following links:
+
+// Navarre: https://code.earthengine.google.com/?asset=users/giambellucalau/Navarra_all
+// Catalonia: https://code.earthengine.google.com/?asset=users/giambellucalau/Catalunia_all
+// Valencia: https://code.earthengine.google.com/?asset=users/giambellucalau/Valencia_all
 
 Export.image.toAsset({
   image: results.setMulti(paramsCombined),
@@ -139,50 +152,51 @@ Export.image.toAsset({
   }
 });
 
-
+// Step 2: Obtain the magnitude, probability, break dates, and model coefficients
 
 // We use the layer exported in the previous step.
 // var image=Catalunia_all;
 
-// Acondicionamiento de array
+// We select the "band" that stores the 'tEnd' change dates
 
 var tiempo= image.select('tEnd').toArray().toArray();
 var image_array=tiempo.arrayProject([0]);
 
 
-// Primero
+// First break
 
 var uno = image_array.arraySlice(0,0,1).rename('t1');
 var uno=uno.arrayProject([0]);
 var uno=uno.arrayFlatten([['t1']]);
 
-// 2do
+// Second break
 var dos = image_array.arraySlice(0,1,2).rename('t2');
 var dos=dos.arrayProject([0]);
 var dos=dos.arrayFlatten([['t2']]);
 
-//3ro
+// Third break
 var tres = image_array.arraySlice(0,2,3).rename('t3');
 var tres=tres.arrayProject([0]);
 var tres=tres.arrayFlatten([['t3']]);
 
-//4to
+// Fourth break
 var cuatro = image_array.arraySlice(0,3,4).rename('t4');
 var cuatro=cuatro.arrayProject([0]);
 var cuatro=cuatro.arrayFlatten([['t4']]);
 
-//5to
+// Fifth break
 var cinco = image_array.arraySlice(0,4,5).rename('t5');
 var cinco=cinco.arrayProject([0]);
 var cinco=cinco.arrayFlatten([['t5']]);
 
-//6to
+// Sixth break
 
 var seis = image_array.arraySlice(0,5,6).rename('t6');
 var seis=seis.arrayProject([0]);
 var seis=seis.arrayFlatten([['t6']]);
 
-//Magnitud
+// We select the "band" that stores the magnitude of the changes 'NBR_magnitude' 
+
 var Mag= image.select('NBR_magnitude').toArray().toArray();
 var image_mag=Mag.arrayProject([0]);
 
@@ -210,7 +224,7 @@ var seis_mag = image_mag.arraySlice(0,5,6).rename('M_6_NBR');
 var seis_mag=seis_mag.arrayProject([0]);
 var seis_mag=seis_mag.arrayFlatten([['M_6_NBR']]);
 
-// Variable 3
+// We select the "band" that stores the probability of the changes 'changeProb' 
 
 var Mag_3= image.select('changeProb').toArray().toArray();
 var image_mag_3=Mag_3.arrayProject([0]);
@@ -240,13 +254,20 @@ var seis_mag_v3=seis_mag_v3.arrayProject([0]);
 var seis_mag_v3=seis_mag_v3.arrayFlatten([['C_6']]);
 
 
-
+// We combine the information about the date of the first break with the magnitude of that break and the probability that it was a change
 var union_1= uno.addBands([uno_mag,uno_mag_v3]);
+// We combine the information about the date of the second break with the magnitude of that break and the probability that it was a change
 var union_2= dos.addBands([dos_mag,dos_mag_v3]);
+We combine the information about the date of the third break with the magnitude of that break and the probability that it was a change
 var union_3= tres.addBands([tres_mag,tres_mag_v3]);
+We combine the information about the date of the fourth break with the magnitude of that break and the probability that it was a change
 var union_4= cuatro.addBands([cuatro_mag,cuatro_mag_v3]);
+We combine the information about the date of the fifth break with the magnitude of that break and the probability that it was a change
 var union_5= cinco.addBands([cinco_mag,cinco_mag_v3]);
+We combine the information about the date of the sixth break with the magnitude of that break and the probability that it was a change
 var union_6= seis.addBands([seis_mag,seis_mag_v3]);
+
+// We export the results.  Because the files are large, you can view them at the following link: https://1drv.ms/f/c/a157812fe5aa5851/IgBRWKrlL4FXIIChSxwBAAAAAVK14Sr0ZUCSF0C7xE9jYbs?e=WpPESA
 
 Export.image.toDrive({
   image: union_1,
@@ -303,218 +324,150 @@ Export.image.toDrive({
 });
 
 
+// We select the "band" that stores the coefficient of the CCDC algorithm per pixel 'NBR_coefs' 
 
-
-
-
-
-## Extracción de coeficientes 
-
-var lista1=image.select('NBR_coefs').arraySlice(0,0,1).rename('coef_1');//Obtengo la primera lista
-
-Map.addLayer(lista1,{},'Prueba');
-
-var primero=lista1.select('coef_1').arraySlice(1,0,1).arrayProject([0]).arrayFlatten([['1st']]); // Coef es igual al número de segmento
-// Map.addLayer(primero,{},'Primer elemento');
-
+// Coefficient of the first break
+var lista1=image.select('NBR_coefs').arraySlice(0,0,1).rename('coef_1');
+// Coefficient 1
+var primero=lista1.select('coef_1').arraySlice(1,0,1).arrayProject([0]).arrayFlatten([['1st']]); 
+// Coefficient 2
 var segundo=lista1.select('coef_1').arraySlice(1,1,2).arrayProject([0]).arrayFlatten([['2nd']]);
-// Map.addLayer(segundo,{},'segundo elemento');
-
-
+// Coefficient 3
 var tercero=lista1.select('coef_1').arraySlice(1,2,3).arrayProject([0]).arrayFlatten([['3ro']]);
-// Map.addLayer(tercero,{},'tercer elemento');
-
+// Coefficient 4
 var cuarto=lista1.select('coef_1').arraySlice(1,3,4).arrayProject([0]).arrayFlatten([['4to']]);
-// Map.addLayer(cuarto,{},'cuarto elemento');
-
+// Coefficient 5
 var quinto=lista1.select('coef_1').arraySlice(1,4,5).arrayProject([0]).arrayFlatten([['5to']]);
-// Map.addLayer(quinto,{},'quinto elemento');
-
+// Coefficient 6
 var sexto=lista1.select('coef_1').arraySlice(1,5,6).arrayProject([0]).arrayFlatten([['6to']]);
-// Map.addLayer(sexto,{},'sexto elemento');
-
+// Coefficient 7
 var septimo=lista1.select('coef_1').arraySlice(1,6,7).arrayProject([0]).arrayFlatten([['7mo']]);
-// Map.addLayer(septimo,{},'septimo elemento');
-
+// Coefficient 8
 var octavo=lista1.select('coef_1').arraySlice(1,7,8).arrayProject([0]).arrayFlatten([['8vo']]);
-// Map.addLayer(octavo,{},'octavo elemento');
 
 
-// Segunda lista de coeficientes
+// Coefficient of the second break
 
-
-var lista2=image.select('NBR_coefs').arraySlice(0,1,2).rename('coef_2');//Obtengo la primera lista
-
-// Map.addLayer(lista2,{},'Prueba_2');
-
+var lista2=image.select('NBR_coefs').arraySlice(0,1,2).rename('coef_2');
+// Coefficient 1
 var primero_2=lista2.select('coef_2').arraySlice(1,0,1).arrayProject([0]).arrayFlatten([['1st_2']]);
 // Map.addLayer(primero_2,{},'Primer elemento_2');
-
+// Coefficient 2
 var segundo_2=lista2.select('coef_2').arraySlice(1,1,2).arrayProject([0]).arrayFlatten([['2nd_2']]);
-// Map.addLayer(segundo_2,{},'segundo elemento_2');
-
-
+// Coefficient 3
 var tercero_2=lista2.select('coef_2').arraySlice(1,2,3).arrayProject([0]).arrayFlatten([['3ro_2']]);
-// Map.addLayer(tercero_2,{},'tercer elemento_2');
-
+// Coefficient 4
 var cuarto_2=lista2.select('coef_2').arraySlice(1,3,4).arrayProject([0]).arrayFlatten([['4to_2']]);
-// Map.addLayer(cuarto_2,{},'cuarto elemento_2');
-
+// Coefficient 5
 var quinto_2=lista2.select('coef_2').arraySlice(1,4,5).arrayProject([0]).arrayFlatten([['5to_2']]);
-// Map.addLayer(quinto_2,{},'quinto elemento_2');
-
+// Coefficient 6
 var sexto_2=lista2.select('coef_2').arraySlice(1,5,6).arrayProject([0]).arrayFlatten([['6to_2']]);
-// Map.addLayer(sexto_2,{},'sexto elemento_2');
-
+// Coefficient 7
 var septimo_2=lista2.select('coef_2').arraySlice(1,6,7).arrayProject([0]).arrayFlatten([['7mo_2']]);
-// Map.addLayer(septimo_2,{},'septimo elemento_2');
-
+// Coefficient 8
 var octavo_2=lista2.select('coef_2').arraySlice(1,7,8).arrayProject([0]).arrayFlatten([['8vo_2']]);
-// Map.addLayer(octavo_2,{},'octavo elemento_2');
 
 
-// tercera lista de coeficientes
-
+// Coefficient of the third break
 
 var lista3=image.select('NBR_coefs').arraySlice(0,2,3).rename('coef_3');//Obtengo la primera lista
 
-// Map.addLayer(lista3,{},'Prueba_3');
-
+// Coefficient 1
 var primero_3=lista3.select('coef_3').arraySlice(1,0,1).arrayProject([0]).arrayFlatten([['1st_3']]);
-// Map.addLayer(primero_3,{},'Primer elemento_3');
-
+// Coefficient 2
 var segundo_3=lista3.select('coef_3').arraySlice(1,1,2).arrayProject([0]).arrayFlatten([['2nd_3']]);
-// Map.addLayer(segundo_3,{},'segundo elemento_3');
-
-
+// Coefficient 3
 var tercero_3=lista3.select('coef_3').arraySlice(1,2,3).arrayProject([0]).arrayFlatten([['3ro_3']]);
-// Map.addLayer(tercero_3,{},'tercer elemento_3');
-
+// Coefficient 4
 var cuarto_3=lista3.select('coef_3').arraySlice(1,3,4).arrayProject([0]).arrayFlatten([['4to_3']]);
-// Map.addLayer(cuarto_3,{},'cuarto elemento_3');
-
+// Coefficient 5
 var quinto_3=lista3.select('coef_3').arraySlice(1,4,5).arrayProject([0]).arrayFlatten([['5to_3']]);
-// Map.addLayer(quinto_3,{},'quinto elemento_3');
-
+// Coefficient 6
 var sexto_3=lista3.select('coef_3').arraySlice(1,5,6).arrayProject([0]).arrayFlatten([['6to_3']]);
-// Map.addLayer(sexto_3,{},'sexto elemento_3');
-
+// Coefficient 7
 var septimo_3=lista3.select('coef_3').arraySlice(1,6,7).arrayProject([0]).arrayFlatten([['7mo_3']]);
-// Map.addLayer(septimo_3,{},'septimo elemento_3');
-
+// Coefficient 8
 var octavo_3=lista3.select('coef_3').arraySlice(1,7,8).arrayProject([0]).arrayFlatten([['8vo_3']]);
-// Map.addLayer(octavo_3,{},'octavo elemento_3');
 
-
-// cuarto lista de coeficientes
-
+// Coefficient of the fourth break
 
 var lista4=image.select('NBR_coefs').arraySlice(0,3,4).rename('coef_4');//Obtengo la primera lista
 
-// Map.addLayer(lista3,{},'Prueba_3');
-
+// Coefficient 1
 var primero_4=lista4.select('coef_4').arraySlice(1,0,1).arrayProject([0]).arrayFlatten([['1st_4']]);
-// Map.addLayer(primero_3,{},'Primer elemento_3');
-
+// Coefficient 2
 var segundo_4=lista4.select('coef_4').arraySlice(1,1,2).arrayProject([0]).arrayFlatten([['2nd_4']]);
-// Map.addLayer(segundo_3,{},'segundo elemento_3');
-
-
+// Coefficient 3
 var tercero_4=lista4.select('coef_4').arraySlice(1,2,3).arrayProject([0]).arrayFlatten([['3ro_4']]);
-// Map.addLayer(tercero_3,{},'tercer elemento_3');
-
+// Coefficient 4
 var cuarto_4=lista4.select('coef_4').arraySlice(1,3,4).arrayProject([0]).arrayFlatten([['4to_4']]);
-// Map.addLayer(cuarto_3,{},'cuarto elemento_3');
-
+// Coefficient 5
 var quinto_4=lista4.select('coef_4').arraySlice(1,4,5).arrayProject([0]).arrayFlatten([['5to_4']]);
-// Map.addLayer(quinto_3,{},'quinto elemento_3');
-
+// Coefficient 6
 var sexto_4=lista4.select('coef_4').arraySlice(1,5,6).arrayProject([0]).arrayFlatten([['6to_4']]);
-// Map.addLayer(sexto_3,{},'sexto elemento_3');
-
+// Coefficient 7
 var septimo_4=lista4.select('coef_4').arraySlice(1,6,7).arrayProject([0]).arrayFlatten([['7mo_4']]);
-// Map.addLayer(septimo_3,{},'septimo elemento_3');
-
+// Coefficient 8
 var octavo_4=lista4.select('coef_4').arraySlice(1,7,8).arrayProject([0]).arrayFlatten([['8vo_4']]);
-// Map.addLayer(octavo_3,{},'octavo elemento_3');
 
 
-// quinto lista de coeficientes
-
+// Coefficient of the fifth break
 
 var lista5=image.select('NBR_coefs').arraySlice(0,4,5).rename('coef_5');//Obtengo la primera lista
 
-// Map.addLayer(lista3,{},'Prueba_3');
-
+// Coefficient 1
 var primero_5=lista5.select('coef_5').arraySlice(1,0,1).arrayProject([0]).arrayFlatten([['1st_5']]);
-// Map.addLayer(primero_3,{},'Primer elemento_3');
-
+// Coefficient 2
 var segundo_5=lista5.select('coef_5').arraySlice(1,1,2).arrayProject([0]).arrayFlatten([['2nd_5']]);
-// Map.addLayer(segundo_3,{},'segundo elemento_3');
-
-
+// Coefficient 3
 var tercero_5=lista5.select('coef_5').arraySlice(1,2,3).arrayProject([0]).arrayFlatten([['3ro_5']]);
-// Map.addLayer(tercero_3,{},'tercer elemento_3');
-
+// Coefficient 4
 var cuarto_5=lista5.select('coef_5').arraySlice(1,3,4).arrayProject([0]).arrayFlatten([['4to_5']]);
-// Map.addLayer(cuarto_3,{},'cuarto elemento_3');
-
+// Coefficient 5
 var quinto_5=lista5.select('coef_5').arraySlice(1,4,5).arrayProject([0]).arrayFlatten([['5to_5']]);
-// Map.addLayer(quinto_3,{},'quinto elemento_3');
-
+// Coefficient 6
 var sexto_5=lista5.select('coef_5').arraySlice(1,5,6).arrayProject([0]).arrayFlatten([['6to_5']]);
-// Map.addLayer(sexto_3,{},'sexto elemento_3');
-
+// Coefficient 7
 var septimo_5=lista5.select('coef_5').arraySlice(1,6,7).arrayProject([0]).arrayFlatten([['7mo_5']]);
-// Map.addLayer(septimo_3,{},'septimo elemento_3');
-
+// Coefficient 8
 var octavo_5=lista5.select('coef_5').arraySlice(1,7,8).arrayProject([0]).arrayFlatten([['8vo_5']]);
-// Map.addLayer(octavo_3,{},'octavo elemento_3');
 
 
 
-// quinto lista de coeficientes
+// Coefficient of the sixth break
 
 
 var lista6=image.select('NBR_coefs').arraySlice(0,5,6).rename('coef_6');//Obtengo la primera lista
-
-// Map.addLayer(lista3,{},'Prueba_3');
-
+// Coefficient 1
 var primero_6=lista6.select('coef_6').arraySlice(1,0,1).arrayProject([0]).arrayFlatten([['1st_6']]);
-// Map.addLayer(primero_3,{},'Primer elemento_3');
-
+// Coefficient 2
 var segundo_6=lista6.select('coef_6').arraySlice(1,1,2).arrayProject([0]).arrayFlatten([['2nd_6']]);
-// Map.addLayer(segundo_3,{},'segundo elemento_3');
-
-
+// Coefficient 3
 var tercero_6=lista6.select('coef_6').arraySlice(1,2,3).arrayProject([0]).arrayFlatten([['3ro_6']]);
-// Map.addLayer(tercero_3,{},'tercer elemento_3');
-
+// Coefficient 4
 var cuarto_6=lista6.select('coef_6').arraySlice(1,3,4).arrayProject([0]).arrayFlatten([['4to_6']]);
-// Map.addLayer(cuarto_3,{},'cuarto elemento_3');
-
+// Coefficient 5
 var quinto_6=lista6.select('coef_6').arraySlice(1,4,5).arrayProject([0]).arrayFlatten([['5to_6']]);
-// Map.addLayer(quinto_3,{},'quinto elemento_3');
-
+// Coefficient 6
 var sexto_6=lista6.select('coef_6').arraySlice(1,5,6).arrayProject([0]).arrayFlatten([['6to_6']]);
-// Map.addLayer(sexto_3,{},'sexto elemento_3');
-
+// Coefficient 7
 var septimo_6=lista6.select('coef_6').arraySlice(1,6,7).arrayProject([0]).arrayFlatten([['7mo_6']]);
-// Map.addLayer(septimo_3,{},'septimo elemento_3');
-
+// Coefficient 8
 var octavo_6=lista6.select('coef_6').arraySlice(1,7,8).arrayProject([0]).arrayFlatten([['8vo_6']]);
 
 
+// We combine the information from each type of coefficient in the different breaks (1,2 and 3, bacause is too large)
 
+var coefi_1= primero.addBands([primero_2,primero_3]);
+var coefi_2= segundo.addBands([segundo_2,segundo_3]);
+var coefi_3= tercero.addBands([tercero_2,tercero_3]);
+var coefi_4= cuarto.addBands([cuarto_2,cuarto_3]);
+var coefi_5= quinto.addBands([quinto_2,quinto_3]);
+var coefi_6= sexto.addBands([sexto_2,sexto_3]);
+var coefi_7= septimo.addBands([septimo_2,septimo_3]);
+var coefi_8= octavo.addBands([octavo_2,octavo_3]);
 
-var coefi_1= primero.addBands([primero_2,primero_3,primero_4,primero_5,primero_6]);
-var coefi_2= segundo.addBands([segundo_2,segundo_3,segundo_4,segundo_5,segundo_6]);
-var coefi_3= tercero.addBands([tercero_2,tercero_3,tercero_4,tercero_5,tercero_6]);
-var coefi_4= cuarto.addBands([cuarto_2,cuarto_3,cuarto_4,cuarto_5,cuarto_6]);
-var coefi_5= quinto.addBands([quinto_2,quinto_3,quinto_4,quinto_5,quinto_6]);
-var coefi_6= sexto.addBands([sexto_2,sexto_3,sexto_4,sexto_5,sexto_6]);
-var coefi_7= septimo.addBands([septimo_2,septimo_3,septimo_4,septimo_5,septimo_6]);
-var coefi_8= octavo.addBands([octavo_2,octavo_3,octavo_4,octavo_5,octavo_6]);
+// Export the results. Because the files are large, you can view them at the following link: https://1drv.ms/f/c/a157812fe5aa5851/IgBRWKrlL4FXIIChQBwBAAAAASOXYWm-3-plNaIJm0N1L7k?e=RUzNEh
 
 Export.image.toDrive({
   image: coefi_1,
@@ -588,7 +541,7 @@ Export.image.toDrive({
   maxPixels: 1e10
 });
 
-
+// We combine the information from each type of coefficient in the different breaks (4,5 and 6, bacause is too large)
 var coefi_1= primero_4.addBands([primero_5,primero_6]);
 var coefi_2= segundo_4.addBands([segundo_5,segundo_6]);
 var coefi_3= tercero_4.addBands([tercero_5,tercero_6]);
