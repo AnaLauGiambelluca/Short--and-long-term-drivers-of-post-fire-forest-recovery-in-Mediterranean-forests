@@ -88,7 +88,7 @@ unido['Label_MFEact'] = unido['Especie1'].apply(asignar_etiqueta_MFEact)
 # We select the plots that have the same label
 coinciden=unido.loc[(unido['Label_MFEact']==unido['Label'])]
 
-#We export the result
+#We export the result.You can find this result in Folder: Layers/...(Region).../02_Conditioned_Labels
 coinciden.to_file("exported_data_Navarra.shp")
 
 # We repeated the procedure for Valencia and Catalonia
