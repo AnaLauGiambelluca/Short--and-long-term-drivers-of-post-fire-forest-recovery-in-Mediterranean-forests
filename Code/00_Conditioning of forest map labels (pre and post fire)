@@ -25,6 +25,8 @@ import re
 from rasterstats import zonal_stats
 
 # We load the Navarre layer containing the information from both land use maps. This layer is obtained by intersecting the Spanish Forest Map (1985) with the Navarre forest map of 2011.
+# You can find the layer in the folder Layers/...(Region).../01_Forest_Map
+
 shp=gpd.read_file('Bosques_MFE11_MFE85_Navarra.shp')
 
 # Each code is assigned its corresponding label, creating a dataframe
