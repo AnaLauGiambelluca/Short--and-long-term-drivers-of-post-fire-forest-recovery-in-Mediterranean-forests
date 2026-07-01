@@ -24,7 +24,7 @@ import math
 import re
 from rasterstats import zonal_stats
 
-# We load the Navarre layer containing the information from both land use maps. This layer is obtained by intersecting the Spanish Forest Map (1985) with the Navarre forest map of 2011.
+# We load the Navarre layer containing the information from both land use maps. This layer is obtained by intersecting the Spanish Forest Map (1985) with the Navarre's forest map of 2011 in QGIS.
 # You can find the layer in the folder Layers/...(Region).../01_Forest_Map
 
 shp=gpd.read_file('Bosques_MFE11_MFE85_Navarra.shp')
@@ -89,6 +89,7 @@ unido['Label_MFEact'] = unido['Especie1'].apply(asignar_etiqueta_MFEact)
 coinciden=unido.loc[(unido['Label_MFEact']==unido['Label'])]
 
 #We export the result.You can find this result in Folder: Layers/...(Region).../02_Conditioned_Labels
+#This data was converted to a raster using QGIS. This raster layer can be found in  Layers/...(Region).../02_Conditioned_Labels
 coinciden.to_file("exported_data_Navarra.shp")
 
 # We repeated the procedure for Valencia and Catalonia
