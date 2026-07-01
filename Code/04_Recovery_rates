@@ -1,0 +1,71 @@
+from shapely.geometry import Point
+
+
+Layer/...(Region).../04_Coef
+
+### Coef of Navarre
+join=pd.read_csv('C:\\...\\Navarra_coef_mag.csv')
+
+join=juntos.copy()
+
+F1=join.loc[((join.F_1==join.FECHA)&(join.F_2>=2023))&((join.F_1==join.FECHA)&(join.mag2>=0)&(join.mag3>=0)&(join.mag4>=0)&(join.mag5>=0)&(join.mag6>=0))]
+F2=join.loc[((join.F_2==join.FECHA)&(join.F_3>=2023))&((join.F_2==join.FECHA)&(join.mag3>=0)&(join.mag4>=0)&(join.mag5>=0)&(join.mag6>=0))]
+F3=join.loc[((join.F_3==join.FECHA)&(join.F_4>=2023))&((join.F_3==join.FECHA)&(join.mag4>=0)&(join.mag5>=0)&(join.mag6>=0))]
+F4=join.loc[((join.F_4==join.FECHA)&(join.F_5>=2023))&((join.F_4==join.FECHA)&(join.mag5>=0)&(join.mag6>=0))]
+F5=join.loc[(join.F_5==join.FECHA)&(join.F_6>=2023)]
+
+juntos_nav=pd.concat([F1,F2,F3,F4,F5])
+
+## Coef of Catalonia
+join=pd.read_csv('C:\\...\\Catalonia_coef_mag.csv')
+
+join=juntos.copy()
+
+F1=join.loc[((join.F_1==join.FECHA)&(join.F_2>=2023))&((join.F_1==join.FECHA)&(join.mag2>=0)&(join.mag3>=0)&(join.mag4>=0)&(join.mag5>=0)&(join.mag6>=0))]
+F2=join.loc[((join.F_2==join.FECHA)&(join.F_3>=2023))&((join.F_2==join.FECHA)&(join.mag3>=0)&(join.mag4>=0)&(join.mag5>=0)&(join.mag6>=0))]
+F3=join.loc[((join.F_3==join.FECHA)&(join.F_4>=2023))&((join.F_3==join.FECHA)&(join.mag4>=0)&(join.mag5>=0)&(join.mag6>=0))]
+F4=join.loc[((join.F_4==join.FECHA)&(join.F_5>=2023))&((join.F_4==join.FECHA)&(join.mag5>=0)&(join.mag6>=0))]
+F5=join.loc[(join.F_5==join.FECHA)&(join.F_6>=2023)]
+
+juntos_cat=pd.concat([F1,F2,F3,F4,F5])
+
+## Coef of Valencia
+join=pd.read_csv('C:\\...\\Catalonia_coef_mag.csv')
+
+join=juntos.copy()
+
+F1=join.loc[((join.F_1==join.FECHA)&(join.F_2>=2023))&((join.F_1==join.FECHA)&(join.mag2>=0)&(join.mag3>=0)&(join.mag4>=0)&(join.mag5>=0)&(join.mag6>=0))]
+F2=join.loc[((join.F_2==join.FECHA)&(join.F_3>=2023))&((join.F_2==join.FECHA)&(join.mag3>=0)&(join.mag4>=0)&(join.mag5>=0)&(join.mag6>=0))]
+F3=join.loc[((join.F_3==join.FECHA)&(join.F_4>=2023))&((join.F_3==join.FECHA)&(join.mag4>=0)&(join.mag5>=0)&(join.mag6>=0))]
+F4=join.loc[((join.F_4==join.FECHA)&(join.F_5>=2023))&((join.F_4==join.FECHA)&(join.mag5>=0)&(join.mag6>=0))]
+F5=join.loc[(join.F_5==join.FECHA)&(join.F_6>=2023)]
+
+juntos_val=pd.concat([F1,F2,F3,F4,F5])
+
+##### Join 
+
+Nav=juntos_nav
+
+Val=juntos_val
+
+Cat=juntos_cat
+
+Nav=Nav[['Row','ID', 'FECHA','longitude', 'latitude', 'geometry']]
+Val=Val[['Row','ID', 'FECHA','longitude', 'latitude', 'geometry']]
+Cat=Cat[['Row','ID', 'FECHA','longitude', 'latitude', 'geometry']]
+
+juntos=pd.concat([Nav,Val,Cat])
+
+
+#geometry = [Point(xy) for xy in zip(concatenados['longitude'], concatenados['latitude'])]
+#gdf = gpd.GeoDataFrame(concatenados, geometry=geometry, crs="EPSG:4326") 
+
+# 4. Export to shapefile. Layer 
+#gdf.to_file(r"C:\....\Puntos_sin_magneg.shp")
+
+
+################################################################################################################################################
+## Select only the points without a second negative break, after the fire
+################################################################################################################################################
+
+
