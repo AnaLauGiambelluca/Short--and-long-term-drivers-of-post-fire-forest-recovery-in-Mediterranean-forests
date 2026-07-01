@@ -9,9 +9,9 @@
 import pandas as pd
 import numpy as np
 import os
-# from osgeo import gdal
-# import geopandas as gpd
-# import rasterio
+from osgeo import gdal
+import geopandas as gpd
+import rasterio
 import math
 from pandas.core.computation.check import NUMEXPR_INSTALLED
 from scipy.signal import argrelextrema
@@ -19,9 +19,6 @@ from scipy.signal import argrelextrema
 
 # Function to extract each coefficient of CCDC. In this part just coeficients for the firsty three timebreaks 
 def extract_bands(direct,folder):
-        
-
-        
     B_t1=gdal.Open(direct+'\\'+folder[0]) 
     B_t2=gdal.Open(direct+'\\'+folder[1])
     B_t3=gdal.Open(direct+'\\'+folder[2])
@@ -68,8 +65,6 @@ def extract_bands(direct,folder):
 
 def extract_bands_4_7(direct,folder):
         
-
-        
     B_t1=gdal.Open(direct+'\\'+folder[0]) 
     B_t2=gdal.Open(direct+'\\'+folder[1])
     B_t3=gdal.Open(direct+'\\'+folder[2])
@@ -78,7 +73,8 @@ def extract_bands_4_7(direct,folder):
     B_t6=gdal.Open(direct+'\\'+folder[5])
     B_t7=gdal.Open(direct+'\\'+folder[6])
     B_t8=gdal.Open(direct+'\\'+folder[7])
-    #Extract the first band... in this case coef of first segment 
+
+    #Extract the first band... in this case coef of fourth segment 
 
     B4_t1=B_t1.GetRasterBand(1).ReadAsArray().astype(np.float32)
     B4_t2=B_t2.GetRasterBand(1).ReadAsArray().astype(np.float32)
@@ -90,7 +86,7 @@ def extract_bands_4_7(direct,folder):
     B4_t8=B_t8.GetRasterBand(1).ReadAsArray().astype(np.float32)
 
 
-    #Extract the second band... in this case  coef of second segment 
+    #Extract the second band... in this case  coef of fifth segment 
     B5_t1=B_t1.GetRasterBand(2).ReadAsArray().astype(np.float32)
     B5_t2=B_t2.GetRasterBand(2).ReadAsArray().astype(np.float32)
     B5_t3=B_t3.GetRasterBand(2).ReadAsArray().astype(np.float32)
@@ -100,7 +96,7 @@ def extract_bands_4_7(direct,folder):
     B5_t7=B_t7.GetRasterBand(2).ReadAsArray().astype(np.float32)
     B5_t8=B_t8.GetRasterBand(2).ReadAsArray().astype(np.float32)
 
-    # Extract the third band... in this case  coef of 3rd segment
+    # Extract the third band... in this case  coef of sixth segment
     B6_t1=B_t1.GetRasterBand(3).ReadAsArray().astype(np.float32)
     B6_t2=B_t2.GetRasterBand(3).ReadAsArray().astype(np.float32)
     B6_t3=B_t3.GetRasterBand(3).ReadAsArray().astype(np.float32)
@@ -112,8 +108,8 @@ def extract_bands_4_7(direct,folder):
 
     return B4_t1,B4_t2,B4_t3,B4_t4,B4_t5,B4_t6,B4_t7,B4_t8,B5_t1,B5_t2,B5_t3,B5_t4,B5_t5,B5_t6,B5_t7,B5_t8,B6_t1,B6_t2,B6_t3,B6_t4,B6_t5,B6_t6,B6_t7,B6_t8
 
-direccion=input('Directorio de los primeros coeficientes: ')
-#C:\\Users\\giambelluca.144055\\OneDrive\\Incendios\\CCDC_coef\\Navarra
+#Specify the path where the files are located
+direccion=input('Directorio de los primeros coeficientes: ') #Example: #C:\\CCDC_coef\\Navarre
 
 # List of files inside the folder
 archivos = [archivo for archivo in os.listdir(direccion) if os.path.isfile(os.path.join(direccion, archivo))]
@@ -122,8 +118,6 @@ archivos = [archivo for archivo in os.listdir(direccion) if os.path.isfile(os.pa
 B1_t1,B1_t2,B1_t3,B1_t4,B1_t5,B1_t6,B1_t7,B1_t8,B2_t1,B2_t2,B2_t3,B2_t4,B2_t5,B2_t6,B2_t7,B2_t8,B3_t1,B3_t2,B3_t3,B3_t4,B3_t5,B3_t6,B3_t7,B3_t8=extract_bands(direccion,archivos)
 
 #Direction of the other coefficients
-
-#direccion_2='C:\\Users\\giambelluca.144055\\OneDrive\\Incendios\\CCDC_coef\\'+CCAA+'\\4a7'
 direccion_2=direccion+'\\4a7'
 # List of files inside the folder
 archivos_2 = [archivos_2 for archivos_2 in os.listdir(direccion_2) if os.path.isfile(os.path.join(direccion_2, archivos_2))]
@@ -135,11 +129,12 @@ B4_t1,B4_t2,B4_t3,B4_t4,B4_t5,B4_t6,B4_t7,B4_t8,B5_t1,B5_t2,B5_t3,B5_t4,B5_t5,B5
 list_bands=[B1_t1,B1_t2,B1_t3,B1_t4,B1_t5,B1_t6,B1_t7,B1_t8,B2_t1,B2_t2,B2_t3,B2_t4,B2_t5,B2_t6,B2_t7,B2_t8,B3_t1,B3_t2,B3_t3,B3_t4,B3_t5,B3_t6,B3_t7,B3_t8,B4_t1,B4_t2,B4_t3,B4_t4,B4_t5,B4_t6,B4_t7,B4_t8,B5_t1,B5_t2,B5_t3,B5_t4,B5_t5,B5_t6,B5_t7,B5_t8,B6_t1,B6_t2,B6_t3,B6_t4,B6_t5,B6_t6,B6_t7,B6_t8]
 names_band=['Coef_1_1','Coef_1_2','Coef_1_3','Coef_1_4','Coef_1_5','Coef_1_6','Coef_1_7','Coef_1_8','Coef_2_1','Coef_2_2','Coef_2_3','Coef_2_4','Coef_2_5','Coef_2_6','Coef_2_7','Coef_2_8','Coef_3_1','Coef_3_2','Coef_3_3','Coef_3_4','Coef_3_5','Coef_3_6','Coef_3_7','Coef_3_8','Coef_4_1','Coef_4_2','Coef_4_3','Coef_4_4','Coef_4_5','Coef_4_6','Coef_4_7','Coef_4_8','Coef_5_1','Coef_5_2','Coef_5_3','Coef_5_4','Coef_5_5','Coef_5_6','Coef_5_7','Coef_5_8','Coef_6_1','Coef_6_2','Coef_6_3','Coef_6_4','Coef_6_5','Coef_6_6','Coef_6_7','Coef_6_8']
 
-# Upload the shp with the Pine information
 
-Pine=gpd.read_file('C:\\Users\\giambelluca.144055\\OneDrive\\Incendios\\Especies\\Pinos_4326_Cat\\Pinos_4326_Cat.shp')
+# Upload the shp with the Pine information. Layers available in Layers/...(Region).../03_Forest
+
+Pine=gpd.read_file('...\\Pinos_4326_Cat.shp')
 # Upload the shp with the Quercus information
-Oak=gpd.read_file('C:\\Users\\giambelluca.144055\\OneDrive\\Incendios\\Especies\\Quercus_4326_Cat\\Quercus_4326_Cat.shp')
+Oak=gpd.read_file('...\\Quercus_4326_Cat.shp')
 
 
 #Function to get for each pixel the value of each coeficient
@@ -161,6 +156,7 @@ for i in range(len(list_bands)):
     Pine=upload_shp(names_band[i],list_bands[i],Pine)
     Oak=upload_shp(names_band[i],list_bands[i],Oak)
 
+# Avoid pixels without data
 Pine=Pine.loc[(Pine['Especie1']!='sin datos')]
 Oak=Oak.loc[(Oak['Especie1']!='sin datos')]
 
@@ -174,7 +170,6 @@ def extract_time(direct,folder):
     B_t4=gdal.Open(direct+'\\'+folder[3])
     B_t5=gdal.Open(direct+'\\'+folder[4])
     B_t6=gdal.Open(direct+'\\'+folder[5])
-
 
     B_tS_1=gdal.Open(direct+'\\'+folder[6])
     B_tS_2=gdal.Open(direct+'\\'+folder[7])
