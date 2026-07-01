@@ -1,0 +1,292 @@
+## This script details the extraction of coefficients, magnitudes, and break times to replicate the CCDC model and extract recovery rates in those pixels 
+## that did not suffer further disturbances after the fire and whose subsequent magnitudes were not negative.
+
+## Author: Ana Laura Giambelluca
+## Jupyter Notebook
+
+#Import Libraries
+
+import pandas as pd
+import numpy as np
+import os
+# from osgeo import gdal
+# import geopandas as gpd
+# import rasterio
+import math
+from pandas.core.computation.check import NUMEXPR_INSTALLED
+from scipy.signal import argrelextrema
+
+
+# Function to extract each coefficient of CCDC. In this part just coeficients for the firsty three timebreaks 
+def extract_bands(direct,folder):
+        
+
+        
+    B_t1=gdal.Open(direct+'\\'+folder[0]) 
+    B_t2=gdal.Open(direct+'\\'+folder[1])
+    B_t3=gdal.Open(direct+'\\'+folder[2])
+    B_t4=gdal.Open(direct+'\\'+folder[3])
+    B_t5=gdal.Open(direct+'\\'+folder[4])
+    B_t6=gdal.Open(direct+'\\'+folder[5])
+    B_t7=gdal.Open(direct+'\\'+folder[6])
+    B_t8=gdal.Open(direct+'\\'+folder[7])
+    #Extract the first band... in this case coef of first segment 
+
+    B1_t1=B_t1.GetRasterBand(1).ReadAsArray().astype(np.float32)
+    B1_t2=B_t2.GetRasterBand(1).ReadAsArray().astype(np.float32)
+    B1_t3=B_t3.GetRasterBand(1).ReadAsArray().astype(np.float32)
+    B1_t4=B_t4.GetRasterBand(1).ReadAsArray().astype(np.float32)
+    B1_t5=B_t5.GetRasterBand(1).ReadAsArray().astype(np.float32)
+    B1_t6=B_t6.GetRasterBand(1).ReadAsArray().astype(np.float32)
+    B1_t7=B_t7.GetRasterBand(1).ReadAsArray().astype(np.float32)
+    B1_t8=B_t8.GetRasterBand(1).ReadAsArray().astype(np.float32)
+
+
+    #Extract the second band... in this case  coef of second segment 
+    B2_t1=B_t1.GetRasterBand(2).ReadAsArray().astype(np.float32)
+    B2_t2=B_t2.GetRasterBand(2).ReadAsArray().astype(np.float32)
+    B2_t3=B_t3.GetRasterBand(2).ReadAsArray().astype(np.float32)
+    B2_t4=B_t4.GetRasterBand(2).ReadAsArray().astype(np.float32)
+    B2_t5=B_t5.GetRasterBand(2).ReadAsArray().astype(np.float32)
+    B2_t6=B_t6.GetRasterBand(2).ReadAsArray().astype(np.float32)
+    B2_t7=B_t7.GetRasterBand(2).ReadAsArray().astype(np.float32)
+    B2_t8=B_t8.GetRasterBand(2).ReadAsArray().astype(np.float32)
+
+    # Extract the third band... in this case  coef of 3rd segment
+    B3_t1=B_t1.GetRasterBand(3).ReadAsArray().astype(np.float32)
+    B3_t2=B_t2.GetRasterBand(3).ReadAsArray().astype(np.float32)
+    B3_t3=B_t3.GetRasterBand(3).ReadAsArray().astype(np.float32)
+    B3_t4=B_t4.GetRasterBand(3).ReadAsArray().astype(np.float32)
+    B3_t5=B_t5.GetRasterBand(3).ReadAsArray().astype(np.float32)
+    B3_t6=B_t6.GetRasterBand(3).ReadAsArray().astype(np.float32)
+    B3_t7=B_t7.GetRasterBand(3).ReadAsArray().astype(np.float32)
+    B3_t8=B_t8.GetRasterBand(3).ReadAsArray().astype(np.float32)
+
+    return B1_t1,B1_t2,B1_t3,B1_t4,B1_t5,B1_t6,B1_t7,B1_t8,B2_t1,B2_t2,B2_t3,B2_t4,B2_t5,B2_t6,B2_t7,B2_t8,B3_t1,B3_t2,B3_t3,B3_t4,B3_t5,B3_t6,B3_t7,B3_t8
+
+# Function to extract each coefficient of CCDC. In this part just coeficients from the 4th to 7th timebreaks 
+
+def extract_bands_4_7(direct,folder):
+        
+
+        
+    B_t1=gdal.Open(direct+'\\'+folder[0]) 
+    B_t2=gdal.Open(direct+'\\'+folder[1])
+    B_t3=gdal.Open(direct+'\\'+folder[2])
+    B_t4=gdal.Open(direct+'\\'+folder[3])
+    B_t5=gdal.Open(direct+'\\'+folder[4])
+    B_t6=gdal.Open(direct+'\\'+folder[5])
+    B_t7=gdal.Open(direct+'\\'+folder[6])
+    B_t8=gdal.Open(direct+'\\'+folder[7])
+    #Extract the first band... in this case coef of first segment 
+
+    B4_t1=B_t1.GetRasterBand(1).ReadAsArray().astype(np.float32)
+    B4_t2=B_t2.GetRasterBand(1).ReadAsArray().astype(np.float32)
+    B4_t3=B_t3.GetRasterBand(1).ReadAsArray().astype(np.float32)
+    B4_t4=B_t4.GetRasterBand(1).ReadAsArray().astype(np.float32)
+    B4_t5=B_t5.GetRasterBand(1).ReadAsArray().astype(np.float32)
+    B4_t6=B_t6.GetRasterBand(1).ReadAsArray().astype(np.float32)
+    B4_t7=B_t7.GetRasterBand(1).ReadAsArray().astype(np.float32)
+    B4_t8=B_t8.GetRasterBand(1).ReadAsArray().astype(np.float32)
+
+
+    #Extract the second band... in this case  coef of second segment 
+    B5_t1=B_t1.GetRasterBand(2).ReadAsArray().astype(np.float32)
+    B5_t2=B_t2.GetRasterBand(2).ReadAsArray().astype(np.float32)
+    B5_t3=B_t3.GetRasterBand(2).ReadAsArray().astype(np.float32)
+    B5_t4=B_t4.GetRasterBand(2).ReadAsArray().astype(np.float32)
+    B5_t5=B_t5.GetRasterBand(2).ReadAsArray().astype(np.float32)
+    B5_t6=B_t6.GetRasterBand(2).ReadAsArray().astype(np.float32)
+    B5_t7=B_t7.GetRasterBand(2).ReadAsArray().astype(np.float32)
+    B5_t8=B_t8.GetRasterBand(2).ReadAsArray().astype(np.float32)
+
+    # Extract the third band... in this case  coef of 3rd segment
+    B6_t1=B_t1.GetRasterBand(3).ReadAsArray().astype(np.float32)
+    B6_t2=B_t2.GetRasterBand(3).ReadAsArray().astype(np.float32)
+    B6_t3=B_t3.GetRasterBand(3).ReadAsArray().astype(np.float32)
+    B6_t4=B_t4.GetRasterBand(3).ReadAsArray().astype(np.float32)
+    B6_t5=B_t5.GetRasterBand(3).ReadAsArray().astype(np.float32)
+    B6_t6=B_t6.GetRasterBand(3).ReadAsArray().astype(np.float32)
+    B6_t7=B_t7.GetRasterBand(3).ReadAsArray().astype(np.float32)
+    B6_t8=B_t8.GetRasterBand(3).ReadAsArray().astype(np.float32)
+
+    return B4_t1,B4_t2,B4_t3,B4_t4,B4_t5,B4_t6,B4_t7,B4_t8,B5_t1,B5_t2,B5_t3,B5_t4,B5_t5,B5_t6,B5_t7,B5_t8,B6_t1,B6_t2,B6_t3,B6_t4,B6_t5,B6_t6,B6_t7,B6_t8
+
+direccion=input('Directorio de los primeros coeficientes: ')
+#C:\\Users\\giambelluca.144055\\OneDrive\\Incendios\\CCDC_coef\\Navarra
+
+# List of files inside the folder
+archivos = [archivo for archivo in os.listdir(direccion) if os.path.isfile(os.path.join(direccion, archivo))]
+
+#Extract the coefficient as array
+B1_t1,B1_t2,B1_t3,B1_t4,B1_t5,B1_t6,B1_t7,B1_t8,B2_t1,B2_t2,B2_t3,B2_t4,B2_t5,B2_t6,B2_t7,B2_t8,B3_t1,B3_t2,B3_t3,B3_t4,B3_t5,B3_t6,B3_t7,B3_t8=extract_bands(direccion,archivos)
+
+#Direction of the other coefficients
+
+#direccion_2='C:\\Users\\giambelluca.144055\\OneDrive\\Incendios\\CCDC_coef\\'+CCAA+'\\4a7'
+direccion_2=direccion+'\\4a7'
+# List of files inside the folder
+archivos_2 = [archivos_2 for archivos_2 in os.listdir(direccion_2) if os.path.isfile(os.path.join(direccion_2, archivos_2))]
+
+#Extract coeficients
+B4_t1,B4_t2,B4_t3,B4_t4,B4_t5,B4_t6,B4_t7,B4_t8,B5_t1,B5_t2,B5_t3,B5_t4,B5_t5,B5_t6,B5_t7,B5_t8,B6_t1,B6_t2,B6_t3,B6_t4,B6_t5,B6_t6,B6_t7,B6_t8=extract_bands_4_7(direccion_2,archivos_2)
+
+# List of names of the coeficients
+list_bands=[B1_t1,B1_t2,B1_t3,B1_t4,B1_t5,B1_t6,B1_t7,B1_t8,B2_t1,B2_t2,B2_t3,B2_t4,B2_t5,B2_t6,B2_t7,B2_t8,B3_t1,B3_t2,B3_t3,B3_t4,B3_t5,B3_t6,B3_t7,B3_t8,B4_t1,B4_t2,B4_t3,B4_t4,B4_t5,B4_t6,B4_t7,B4_t8,B5_t1,B5_t2,B5_t3,B5_t4,B5_t5,B5_t6,B5_t7,B5_t8,B6_t1,B6_t2,B6_t3,B6_t4,B6_t5,B6_t6,B6_t7,B6_t8]
+names_band=['Coef_1_1','Coef_1_2','Coef_1_3','Coef_1_4','Coef_1_5','Coef_1_6','Coef_1_7','Coef_1_8','Coef_2_1','Coef_2_2','Coef_2_3','Coef_2_4','Coef_2_5','Coef_2_6','Coef_2_7','Coef_2_8','Coef_3_1','Coef_3_2','Coef_3_3','Coef_3_4','Coef_3_5','Coef_3_6','Coef_3_7','Coef_3_8','Coef_4_1','Coef_4_2','Coef_4_3','Coef_4_4','Coef_4_5','Coef_4_6','Coef_4_7','Coef_4_8','Coef_5_1','Coef_5_2','Coef_5_3','Coef_5_4','Coef_5_5','Coef_5_6','Coef_5_7','Coef_5_8','Coef_6_1','Coef_6_2','Coef_6_3','Coef_6_4','Coef_6_5','Coef_6_6','Coef_6_7','Coef_6_8']
+
+# Upload the shp with the Pine information
+
+Pine=gpd.read_file('C:\\Users\\giambelluca.144055\\OneDrive\\Incendios\\Especies\\Pinos_4326_Cat\\Pinos_4326_Cat.shp')
+# Upload the shp with the Quercus information
+Oak=gpd.read_file('C:\\Users\\giambelluca.144055\\OneDrive\\Incendios\\Especies\\Quercus_4326_Cat\\Quercus_4326_Cat.shp')
+
+
+#Function to get for each pixel the value of each coeficient
+
+def upload_shp(name, bands,shp):
+    val=[]
+    rows=list(shp['Rows'])
+    col=list(shp['Columns'])
+    for i in range (len(rows)):
+        extract=bands[rows[i]][col[i]]
+        val.append(extract)
+    
+    shp[name]=val
+        
+    return shp
+
+# Get the value of each coefficient for each pixel
+for i in range(len(list_bands)):
+    Pine=upload_shp(names_band[i],list_bands[i],Pine)
+    Oak=upload_shp(names_band[i],list_bands[i],Oak)
+
+Pine=Pine.loc[(Pine['Especie1']!='sin datos')]
+Oak=Oak.loc[(Oak['Especie1']!='sin datos')]
+
+
+# Function to extract tEnd and tStart 
+def extract_time(direct,folder):
+                
+    B_t1=gdal.Open(direct+'\\'+folder[0]) 
+    B_t2=gdal.Open(direct+'\\'+folder[1])
+    B_t3=gdal.Open(direct+'\\'+folder[2])
+    B_t4=gdal.Open(direct+'\\'+folder[3])
+    B_t5=gdal.Open(direct+'\\'+folder[4])
+    B_t6=gdal.Open(direct+'\\'+folder[5])
+
+
+    B_tS_1=gdal.Open(direct+'\\'+folder[6])
+    B_tS_2=gdal.Open(direct+'\\'+folder[7])
+    
+    #Extract the first band... in this case time end
+
+    t1=B_t1.GetRasterBand(1).ReadAsArray().astype(np.float32)
+    t2=B_t2.GetRasterBand(1).ReadAsArray().astype(np.float32)
+    t3=B_t3.GetRasterBand(1).ReadAsArray().astype(np.float32)
+    t4=B_t4.GetRasterBand(1).ReadAsArray().astype(np.float32)
+    t5=B_t5.GetRasterBand(1).ReadAsArray().astype(np.float32)
+    t6=B_t6.GetRasterBand(1).ReadAsArray().astype(np.float32)
+
+
+    B_tS1=B_tS_1.GetRasterBand(1).ReadAsArray().astype(np.float32)
+    B_tS2=B_tS_1.GetRasterBand(2).ReadAsArray().astype(np.float32)
+    B_tS3=B_tS_1.GetRasterBand(3).ReadAsArray().astype(np.float32)
+    B_tS4=B_tS_2.GetRasterBand(1).ReadAsArray().astype(np.float32)
+    B_tS5=B_tS_2.GetRasterBand(2).ReadAsArray().astype(np.float32)
+    B_tS6=B_tS_2.GetRasterBand(3).ReadAsArray().astype(np.float32)
+    
+
+
+    return t1,t2,t3,t4,t5,t6,B_tS1,B_tS2,B_tS3,B_tS4,B_tS5,B_tS6
+
+# Direction to extract each time
+
+direccion_t='C:\\Users\\giambelluca.144055\\OneDrive\\Incendios\\CCDC_tiempos\\'+CCAA
+
+# Obtén la lista de archivos en la dirección especificada de los incendios 
+archivos_t = [archivo for archivo in os.listdir(direccion_t) if os.path.isfile(os.path.join(direccion_t, archivo))]
+
+def extract_magnitude(direct,folder):
+    
+    B_t1=gdal.Open(direct+'\\'+folder[0]) 
+    B_t2=gdal.Open(direct+'\\'+folder[1])
+    B_t3=gdal.Open(direct+'\\'+folder[2])
+    B_t4=gdal.Open(direct+'\\'+folder[3])
+    B_t5=gdal.Open(direct+'\\'+folder[4])
+    B_t6=gdal.Open(direct+'\\'+folder[5])
+    
+    #Extract the first band... in this case magnitude
+
+    mag1=B_t1.GetRasterBand(2).ReadAsArray().astype(np.float32)
+    mag2=B_t2.GetRasterBand(2).ReadAsArray().astype(np.float32)
+    mag3=B_t3.GetRasterBand(2).ReadAsArray().astype(np.float32)
+    mag4=B_t4.GetRasterBand(2).ReadAsArray().astype(np.float32)
+    mag5=B_t5.GetRasterBand(2).ReadAsArray().astype(np.float32)
+    mag6=B_t6.GetRasterBand(2).ReadAsArray().astype(np.float32)
+    
+    return mag1,mag2,mag3,mag4,mag5,mag6
+
+# Extract time in variables
+t1,t2,t3,t4,t5,t6,B_tS1,B_tS2,B_tS3,B_tS4,B_tS5,B_tS6=extract_time(direccion_t,archivos_t)
+
+# Name of each time 
+list_bands_t=[t1,t2,t3,t4,t5,t6,B_tS1,B_tS2,B_tS3,B_tS4,B_tS5,B_tS6]
+names_band_t=['t1','t2','t3','t4','t5','t6','Ts1','Ts2','Ts3','Ts4','Ts5','Ts6']
+
+# Get for each pixel the value of tStart and tEnd
+for i in range(len(list_bands_t)):
+    Pine=upload_shp(names_band_t[i],list_bands_t[i],Pine)
+    Oak=upload_shp(names_band_t[i],list_bands_t[i],Oak)
+
+
+# Direction to extract each time
+
+direccion_mag='C:\\Users\\giambelluca.144055\\OneDrive\\Incendios\\CCDC_tiempos\\'+CCAA
+
+# Obtén la lista de archivos en la dirección especificada de los incendios 
+archivos_mag = [archivo for archivo in os.listdir(direccion_t) if os.path.isfile(os.path.join(direccion_mag, archivo))]
+archivos_mag=[item for item in archivos_mag if len(item) > 24 and "End_Mag_Prob" in item]
+archivos_mag
+
+mag1,mag2,mag3,mag4,mag5,mag6=extract_magnitude(direccion_mag,archivos_mag)
+
+# Name of each magnitude 
+list_bands_mag=[mag1,mag2,mag3,mag4,mag5,mag6]
+names_band_mag=['mag1','mag2','mag3','mag4','mag5','mag6']
+
+# Get for each pixel the value of tStart and tEnd
+for i in range(len(list_bands_mag)):
+    Pine=upload_shp(names_band_mag[i],list_bands_mag[i],Pine)
+    Oak=upload_shp(names_band_mag[i],list_bands_mag[i],Oak)
+
+juntos=pd.concat([Pine,Oak])
+
+
+juntos['F_1']=juntos['t1'].astype(int)
+juntos['F_2']=juntos['t2'].astype(int)
+juntos['F_3']=juntos['t3'].astype(int)
+juntos['F_4']=juntos['t4'].astype(int)
+juntos['F_5']=juntos['t5'].astype(int)
+juntos['F_6']=juntos['t6'].astype(int)
+
+juntos.to_csv('Navarra_coef.csv')
+
+
+Primera_fecha=juntos.loc[(juntos['FECHA']==juntos['F_1'])]
+Primera_fecha['Cambio']=Primera_fecha[['mag1']]*-1
+
+Segunda_fecha=juntos.loc[(juntos['FECHA']==juntos['F_2'])]
+Segunda_fecha['Cambio']=Segunda_fecha[['mag2']]*-1
+
+Tercera_fecha=juntos.loc[(juntos['FECHA']==juntos['F_3'])]
+Tercera_fecha['Cambio']=Tercera_fecha[['mag3']]*-1
+
+Cuarta_fecha=juntos.loc[(juntos['FECHA']==juntos['F_4'])]
+Cuarta_fecha['Cambio']=Cuarta_fecha[['mag4']]*-1
+
+Quinta_fecha=juntos.loc[(juntos['FECHA']==juntos['F_5'])]
+Quinta_fecha['Cambio']=Quinta_fecha[['mag5']]*-1
+
+Sexta_fecha=juntos.loc[(juntos['FECHA']==juntos['F_6'])]
+Sexta_fecha['Cambio']=Sexta_fecha[['mag6']]*-1
