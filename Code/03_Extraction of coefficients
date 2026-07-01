@@ -197,10 +197,32 @@ def extract_time(direct,folder):
 
 # Direction to extract each time
 
-direccion_t='C:\\Users\\giambelluca.144055\\OneDrive\\Incendios\\CCDC_tiempos\\'+CCAA
+direccion_t='C:\\...\\CCDC_tiempos\\'+CCAA'
 
-# Obtén la lista de archivos en la dirección especificada de los incendios 
+# Get the file list at the specified fire address
 archivos_t = [archivo for archivo in os.listdir(direccion_t) if os.path.isfile(os.path.join(direccion_t, archivo))]
+
+# Extract time in variables
+t1,t2,t3,t4,t5,t6,B_tS1,B_tS2,B_tS3,B_tS4,B_tS5,B_tS6=extract_time(direccion_t,archivos_t)
+
+# Name of each time 
+list_bands_t=[t1,t2,t3,t4,t5,t6,B_tS1,B_tS2,B_tS3,B_tS4,B_tS5,B_tS6]
+names_band_t=['t1','t2','t3','t4','t5','t6','Ts1','Ts2','Ts3','Ts4','Ts5','Ts6']
+
+# Get for each pixel the value of tStart and tEnd
+for i in range(len(list_bands_t)):
+    Pine=upload_shp(names_band_t[i],list_bands_t[i],Pine)
+    Oak=upload_shp(names_band_t[i],list_bands_t[i],Oak)
+
+
+# Direction to extract the magnitude each time
+
+direccion_mag='C:\\...\\CCDC_tiempos\\'+CCAA'
+
+# Get the file list at the specified fire address
+archivos_mag = [archivo for archivo in os.listdir(direccion_t) if os.path.isfile(os.path.join(direccion_mag, archivo))]
+archivos_mag=[item for item in archivos_mag if len(item) > 24 and "End_Mag_Prob" in item]
+archivos_mag
 
 def extract_magnitude(direct,folder):
     
@@ -222,27 +244,6 @@ def extract_magnitude(direct,folder):
     
     return mag1,mag2,mag3,mag4,mag5,mag6
 
-# Extract time in variables
-t1,t2,t3,t4,t5,t6,B_tS1,B_tS2,B_tS3,B_tS4,B_tS5,B_tS6=extract_time(direccion_t,archivos_t)
-
-# Name of each time 
-list_bands_t=[t1,t2,t3,t4,t5,t6,B_tS1,B_tS2,B_tS3,B_tS4,B_tS5,B_tS6]
-names_band_t=['t1','t2','t3','t4','t5','t6','Ts1','Ts2','Ts3','Ts4','Ts5','Ts6']
-
-# Get for each pixel the value of tStart and tEnd
-for i in range(len(list_bands_t)):
-    Pine=upload_shp(names_band_t[i],list_bands_t[i],Pine)
-    Oak=upload_shp(names_band_t[i],list_bands_t[i],Oak)
-
-
-# Direction to extract each time
-
-direccion_mag='C:\\Users\\giambelluca.144055\\OneDrive\\Incendios\\CCDC_tiempos\\'+CCAA
-
-# Obtén la lista de archivos en la dirección especificada de los incendios 
-archivos_mag = [archivo for archivo in os.listdir(direccion_t) if os.path.isfile(os.path.join(direccion_mag, archivo))]
-archivos_mag=[item for item in archivos_mag if len(item) > 24 and "End_Mag_Prob" in item]
-archivos_mag
 
 mag1,mag2,mag3,mag4,mag5,mag6=extract_magnitude(direccion_mag,archivos_mag)
 
@@ -255,6 +256,7 @@ for i in range(len(list_bands_mag)):
     Pine=upload_shp(names_band_mag[i],list_bands_mag[i],Pine)
     Oak=upload_shp(names_band_mag[i],list_bands_mag[i],Oak)
 
+# Join both dataframes (Pine and Oak)
 juntos=pd.concat([Pine,Oak])
 
 
@@ -265,23 +267,7 @@ juntos['F_4']=juntos['t4'].astype(int)
 juntos['F_5']=juntos['t5'].astype(int)
 juntos['F_6']=juntos['t6'].astype(int)
 
-juntos.to_csv('Navarra_coef.csv')
+# This intermidiate layer can be found in Layer/...(Region).../04_Coef
 
+#juntos.to_csv('Navarra_coef.csv')
 
-Primera_fecha=juntos.loc[(juntos['FECHA']==juntos['F_1'])]
-Primera_fecha['Cambio']=Primera_fecha[['mag1']]*-1
-
-Segunda_fecha=juntos.loc[(juntos['FECHA']==juntos['F_2'])]
-Segunda_fecha['Cambio']=Segunda_fecha[['mag2']]*-1
-
-Tercera_fecha=juntos.loc[(juntos['FECHA']==juntos['F_3'])]
-Tercera_fecha['Cambio']=Tercera_fecha[['mag3']]*-1
-
-Cuarta_fecha=juntos.loc[(juntos['FECHA']==juntos['F_4'])]
-Cuarta_fecha['Cambio']=Cuarta_fecha[['mag4']]*-1
-
-Quinta_fecha=juntos.loc[(juntos['FECHA']==juntos['F_5'])]
-Quinta_fecha['Cambio']=Quinta_fecha[['mag5']]*-1
-
-Sexta_fecha=juntos.loc[(juntos['FECHA']==juntos['F_6'])]
-Sexta_fecha['Cambio']=Sexta_fecha[['mag6']]*-1
