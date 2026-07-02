@@ -1,0 +1,42 @@
+# En el siguiente código los puntos cuya tasa de recuperación se ha calculado son filtrados aleatoriamente por el paquete SpatialEco de R teniendo en cuenta una
+# distancia mínima entre puntos de 100 m
+
+#Author: Ana Laura Giambelluca 
+# Rstudio 2022.02.0
+
+# Libraries
+library(SRS)
+library(dplyr)
+library(tidyr)
+library(sf)
+library(sp)
+library(doParallel)
+library(foreach)
+library(parallel)
+library(iterators)
+library(readr)
+
+
+# Replace "path/to/your/file.gpkg" with the correct path
+puntos <- st_read("C:\\...\\Point_recovery_rate.gpkg")
+
+# Convert/ensure the object is explicitly in 'sf' format
+puntos_gpkg<-sf::st_as_sf(puntos)
+
+# Set up a parallel socket cluster using 4 CPU cores to speed up processing
+cl <- makePSOCKcluster(4)
+# Register the cluster to enable parallel backend processing
+registerDoParallel(cl)
+# Set a random seed to ensure the spatial subsampling results are reproducible
+set.seed(123)
+# Print the current system time to mark the start of the process
+Sys.time()
+# Subsample 50,000 points (size), ensuring a minimum distance of 100 meters (d) between them
+filtrado<-spatialEco::subsample.distance(puntos_gpkg, 50000,100)
+# Print the current system time to mark the end of the process (used to calculate elapsed time)
+Sys.time()
+# Stop the parallel cluster and free up the allocated CPU resources
+stopCluster(cl)
+
+# Export the dataframe. You can found it in Layers/Wilfires/Filtered
+write_csv(filtrado, "Filtered_points.csv")
