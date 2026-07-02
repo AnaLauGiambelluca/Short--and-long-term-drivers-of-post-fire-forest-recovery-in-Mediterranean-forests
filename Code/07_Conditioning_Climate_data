@@ -1,0 +1,86 @@
+# The following code is the procedure that has been used for the four climatic variables (SPEI, T.max, T.min and precipitation) for the three regions;
+# at the end, all the data by region has been combined. In order to replicate the result change the file that you are using and the name of the variables
+# Condition the climate data to extract the average of the 5 and 20 years post-fires.
+
+# Author: Ana Laura Giambelluca
+# Jupyter Notebook
+
+#Function to extract the date, the year, and the month
+def fechas(num):
+    return str(num)[:7]
+
+def year(num):
+    return str(num)[:4]
+
+def month(num):
+    return str(num)[5:]
+
+# We load the points after randomly sampling (code 05_Random_sampling)
+remuestreo=pd.read_csv(r'C:\...\Puntos_arti_NBR_04.csv')
+
+# We load the dataframe with all NBR values after fire. (Code 04_Recovery_rates)
+df_recovery=pd.read_csv(r'F:\NBR_article\Puntos_11\Puntos_NBR_mayor_04_tasas_ID.csv')
+
+# We load the dataframe with the coeficient information
+Nav=pd.read_csv('C:\\...\\Navarra_coef_mag.csv')
+
+# We combined both datasets
+join=pd.merge(remuestreo,df_recovery,on=['Row','ID'])
+
+# We obtained the pre-fire baseline
+for i in range (1986,2004,1):
+    pre1=str(i-2)
+    pre2=str(i-1)
+        
+    join.loc[(join.FECHA==i),['NBR_pre_fire']]=(join[pre1]+join[pre2])/2
+    
+
+def CCAA(num):
+    return str(num)[-1:]
+
+join['CCAA']=join['ID'].apply(CCAA)
+
+# Filter by region. C=Catalonia, N=Navarre, V=Valencia.
+
+CCAA=join.loc[(join.CCAA=='C')]
+
+# CSV with climate information
+# Example:
+clima_prec=pd.read_csv('Catalunia_rain.csv', usecols=['Date', 'Row', 'Rain'])
+
+# clima_prec=clima_prec[['Date', 'Latitude', 'Longitude', 'Row', 'Prec', 'row','column']]
+
+variable=pd.merge(CCAA,clima_prec,on='Row')
+
+
+variable['Date']=variable['Date'].apply(fechas)
+variable['Year']=variable['Date'].apply(year)
+variable['Month']=variable['Date'].apply(month)
+variable
+# We filtered the growth period
+variable=variable.loc[(variable.Month=='05')|(variable.Month=='06')|(variable.Month=='07')|(variable.Month=='08')|(variable.Month=='09')|(variable.Month=='10')]
+
+join=variable
+
+join['Year']=join['Year'].astype(int)
+join['FECHA']=join['FECHA'].astype(int)
+
+# We filter considering the short and long-term
+filtered_5year=join.loc[((join.Year>=(join.FECHA))&(join.Year<(join.FECHA+5)))]
+filtered_20year=join.loc[(join.Year>=(join.FECHA))&(join.Year<(join.FECHA+20))]
+
+# In case of precipitation we use .sum(), with T.max, T.min and SPEI we use .mean()
+
+resultados_V_5 = filtered_5year.groupby('Row')['Rain'].sum().reset_index()
+resultados_V_5.columns=['Row','Prec_5']
+resultados_V_20 = filtered_20year.groupby('Row')['Rain'].sum().reset_index()
+resultados_V_20.columns=['Row','Prec_20']
+
+join_prec=pd.merge(resultados_V_5,resultados_V_20,on='Row')
+join_prec
+
+# ... We do this for T.max, Tmin, SPEI and we combine them all and export them. Available in Layers/...(Region).../Climate
+
+Clima_navarra=pd.read_csv(r'C:\...\Clima_Navarra.csv') 
+Clima_valencia=pd.read_csv(r'C:\...\Clima_Valencia.csv')
+Clima_catalunia=pd.read_csv(r'C:\...\Clima_Catalunia.csv')
