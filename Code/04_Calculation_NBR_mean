@@ -1,0 +1,122 @@
+// GEE code to extract the average summer NBR at each point
+
+
+// Fire is the point layer available in Layers/Wildfires
+
+var area=Fire.filter(ee.Filter.eq('FECHA', 1988));
+
+// Functions to calculate the vegetation index NBR
+// Code for Landsat 4,5,7
+function addNBR(image) {
+    var NBR = image.expression ('(NIR - SWIR) / (NIR + SWIR)', {
+    'NIR': image.select ('SR_B4'),      
+    'SWIR': image.select ('SR_B7')}).rename('NBR');
+    return image.addBands([NBR])}
+// Code for Landsat 8   
+function addNBR89(image) {
+    var NBR = image.expression ('(NIR - SWIR) / (NIR + SWIR)', {
+    'NIR': image.select ('SR_B5'),  
+    'SWIR': image.select ('SR_B7')}).rename('NBR');
+    return image.addBands([NBR])}
+
+// Functions for mask clouds
+// Code for Landsat 4,5 and 7
+function mask457sr(image){
+  var qaMask=image.select('QA_PIXEL').bitwiseAnd(parseInt('11111',2)).eq(0);
+  var saturationMask=image.select('QA_RADSAT').eq(0);
+  var opticalBands=image.select('SR_B.').multiply(0.0000275).add(-0.2);
+  var thermalBand=image.select('ST_B6').multiply(0.00341802).add(149.0);
+  
+  return image.addBands(opticalBands,null,true)
+  .addBands(thermalBand,null,true)
+  .updateMask(qaMask)
+  .updateMask(saturationMask)
+  ;}
+
+// Code for Landsat 8
+function maskL8sr(image) {
+  var qaMask = image.select('QA_PIXEL').bitwiseAnd(parseInt('11111', 2)).eq(0);
+  var qualityBand= image.select('QA_PIXEL');
+  var saturationMask = image.select('QA_RADSAT').eq(0);
+  var opticalBands = image.select('SR_B.').multiply(0.0000275).add(-0.2);
+  var thermalBands = image.select('ST_B.*').multiply(0.00341802).add(149.0);
+  return image.addBands(opticalBands, null, true)
+      .addBands(thermalBands, null, true)
+      .updateMask(qaMask)
+      .updateMask(saturationMask);
+}
+
+
+// Call the collections
+var Landsat4 = ee.ImageCollection('LANDSAT/LT04/C02/T1_L2')
+    .filterDate('1983-01-01', '1993-06-24')
+    .filterMetadata('CLOUD_COVER','Less_Than',70)
+    .filterBounds(area)
+    .map(mask457sr)
+    .map(addNBR);
+
+var Landsat5 = ee.ImageCollection('LANDSAT/LT05/C02/T1_L2')
+    .filterDate('1984-03-16', '2012-05-05')
+    .filterMetadata('CLOUD_COVER','Less_Than',70)
+    .filterBounds(area)
+    .map(mask457sr)
+    .map(addNBR);
+
+var Landsat7 = ee.ImageCollection('LANDSAT/LE07/C02/T1_L2')
+    .filterDate('1999-05-28', '2023-12-31')
+    .filterMetadata('CLOUD_COVER','Less_Than',70)
+    .filterBounds(area)
+    .map(mask457sr)
+    .map(addNBR);
+  
+var Landsat8 = ee.ImageCollection("LANDSAT/LC08/C02/T1_L2")
+                            .filterDate('2013-03-18', '2023-12-31')
+                            .filterMetadata("CLOUD_COVER","less_than", 70)
+                            .map(maskL8sr)
+                            .filterBounds(area)
+                            .map(addNBR89);
+
+// Join all Collections
+var Land=Landsat4.merge(Landsat5).merge(Landsat7).merge(Landsat8);
+
+// We extract the average NBR each summer
+
+
+// Change using each year
+var Y='1987';
+
+// Function to create a composite 
+function mosaicJ(collection,year){
+  var month =collection.filterDate(year+'-07-01',year+'-08-31')
+  .select(['NBR']);
+  var composite_j = month.select(['NBR']).mean();
+  return composite_j;
+  }
+
+// Create an ImageCollection with the composite
+var veg_ind_j=mosaicJ(Land,Y);
+var ind_control=ee.ImageCollection(veg_ind_j);
+
+//Statistics for Control Plots. Extract the NBR_mean
+
+var stats_hecho = ind_control.map(function(image) {
+  return area.map(function(f){
+    var mean = image.reduceRegion({reducer: ee.Reducer.mean(),geometry: f.geometry(),scale: 30});
+    return f.set({
+      // Mean
+      'NBR_mean': mean.get('NBR'),
+  })
+  })
+})
+.flatten()
+.filter(ee.Filter.neq('NBR_mean', null))
+
+// Export. Save the result in Layer/Wildfires
+Export.table.toDrive({
+   collection: stats_hecho,
+   description: 'NBR_'+Y+'_summer_NBR',
+   fileFormat: 'CSV',
+   folder: 'gee/NBR_Article_1997'
+});   
+
+
