@@ -297,8 +297,5 @@ geometry = [Point(xy) for xy in zip(NBR_mayor['longitude'], NBR_mayor['latitude'
 gdf = gpd.GeoDataFrame(NBR_mayor, geometry=geometry, crs="EPSG:4326")
 
 # Export. You can found this information in Layers/Recovery_rates
-gdf.to_file(r"C:\...\Puntos_NBR_Mayores_04.gpkg")
+gdf.to_file(r"C:\...\Point_recovery_rate.gpkg")
 
-
-# 4. Exportar a shapefile
-gdf.to_file(r"C:\Users\giambelluca.144055\OneDrive\Doctorado\Articulos\Wildfire\Puntos\Puntos_no_negativos\Puntos_NBR_Mayores_04.gpkg")
