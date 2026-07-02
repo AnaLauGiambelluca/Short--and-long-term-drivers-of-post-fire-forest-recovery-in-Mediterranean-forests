@@ -214,6 +214,8 @@ for y in range(y_start,y_end,1):
 #Note: Due to the large file size of these intermediate processed rasters (exceeding 1 TB), they are not included in this repository.
 #However, they can be provided upon reasonable request.
 
+# Then the points filtered by SpatialEco (Code: 05_Random_sampling) were crossed with the raster layers interpolated with each climatic variable. 
+
 
 
 
