@@ -10,7 +10,7 @@ import os
 import geopandas as gpd
 
 
-# Read files and the outcome is a dictionary with values, coordenates, day/hs and calendar. None data is labeled as 9999
+# Read files and the outcome is a dictionary with values, coordenates, day/hs and calendar. None data is labeled as 9999. This code if for T.max, Tmin and precipitation
 def read_netCDF(dataPath, filename, nc_variable, lat_name='latitude', lon_name='longitude', time_name='time'):
 
     fileNc = nc4.Dataset(dataPath + '\\' + filename)
@@ -47,6 +47,63 @@ def read_netCDF(dataPath, filename, nc_variable, lat_name='latitude', lon_name='
     data = data.__array__()
     return {'data': data, 'times': times, 'lats': lats, 'lons': lons, 'calendar': calendar}  
 
+
+##############################################################################################
+# Read files and the outcome is a dictionary with values, coordenates, day/hs and calendar. None data is labeled as 9999. This code if for SPEI
+#función que lee archivos netcdf y devuelve un diccionario con los datos, coordenadas, días/horas y calendario. Los valores sin dato se pasan a NaN
+
+# Read files and the outcome is a dictionary with values, coordenates, day/hs and calendar. None data is labeled as 9999
+def read_netCDF(dataPath, filename, nc_variable, lat_name='lat', lon_name='lon', time_name='time'):
+
+    fileNc = nc4.Dataset(dataPath + '\\' + filename)
+
+    # print(fileNc)   # para ver el nombre de las variables
+    # for var in fileNc.variables:
+    # 	print('----------------------------')
+    # 	print(var)
+    # 	print(fileNc.variables[var])
+    # 	print(fileNc.variables[var][:])
+    # 	print(fileNc.variables[var][:].shape)
+
+    calendar = fileNc.variables[time_name].calendar
+    units = fileNc.variables[time_name].units
+    times=nc4.num2date(fileNc.variables[time_name][:],units=units,calendar=calendar)
+
+    lats = fileNc.variables[lat_name][:]
+    lons = fileNc.variables[lon_name][:]
+    data=fileNc.variables[nc_variable][:]
+
+
+    # Datos inválidos se ponen como Nan
+    if hasattr(fileNc.variables[nc_variable], '_FillValue'):
+        data[data==fileNc.variables[nc_variable]._FillValue] = 9999
+    if np.ma.is_masked(data):
+        data = np.ma.MaskedArray.filled(data, fill_value=9999)
+
+    if calendar in ('365_day', 'standard'):
+        for i in range(times.size):
+            year, month, day, hour, minute = times[i].year, times[i].month, times[i].day, 12, 0
+            times[i] = datetime(year, month, day, hour, minute)
+
+    elif calendar == '360_day':
+        valid_idates = []
+        for i in range(times.size):
+            if not ((times[i].month == 2) and (times[i].day >= 29)):
+                valid_idates.append(i)
+                year = times[i].year
+                month = times[i].month
+                day = times[i].day
+                times[i] = datetime(year, month, day, 12, 0)
+        data = data[valid_idates]
+        times = times[valid_idates]
+
+    data = data.__array__()
+    # data = np.frombuffer(data.getdata).reshape(data.shape)
+
+    return {'data': data, 'times': times, 'lats': lats, 'lons': lons, 'calendar': calendar}  
+
+
+#########################################################################################################
 
 ## Load the data. You could found this daset in the following link:
 ## https://1drv.ms/f/c/a157812fe5aa5851/IgBRWKrlL4FXIIChQR8BAAAAAUeeJGolUa9pB_vPwP42pXI?e=ZQ5oxH
@@ -151,12 +208,11 @@ for y in range(y_start,y_end,1):
         ruta=direction+'\\'+str(y)+'_'+str(m)+'_'+nc_variable+'.gpkg'
         gdf.to_file(ruta, driver='GPKG') 
 
-#In QGIS we interpolate the data using cubic interpolation and export rasters with this climate information.
-Link:
-Valencia: 
-Rain: https://1drv.ms/f/c/a157812fe5aa5851/IgBRWKrlL4FXIIChszECAAAAAXJKvg0zA01DdmDgs8Sjh1g?e=olShtF
-Tmax: https://1drv.ms/f/c/a157812fe5aa5851/IgBRWKrlL4FXIIChGi0CAAAAAdXXUWap_PFyOP26LwQNBSY?e=VMqTsn
-Tmin: https://1drv.ms/f/c/a157812fe5aa5851/IgBRWKrlL4FXIIChATACAAAAAXu4tnMtVYxqhpjayY3jF3U?e=Ex7h5r
+
+#In QGIS, the data is interpolated using cubic interpolation to export rasters with this climate information.
+
+#Note: Due to the large file size of these intermediate processed rasters (exceeding 1 TB), they are not included in this repository.
+#However, they can be provided upon reasonable request.
 
 
 
