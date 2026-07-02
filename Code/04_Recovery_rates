@@ -14,7 +14,7 @@ import matplotlib.pyplot as plt
 import geopandas as gpd
 
 
-Layer/...(Region).../04_Coef
+# Coefficient are availables in: Layer/...(Region).../04_Coef
 
 ### Coef of Navarre
 join=pd.read_csv('C:\\...\\Navarra_coef_mag.csv')
@@ -77,6 +77,7 @@ juntos=pd.concat([Nav,Val,Cat])
 ## Select only the points with summer mean NBR greater than 0.4
 ################################################################################################################################################
 
+# Files are availables in Layers/Wildfires/NBR_mean_point
 
 archivos=list(os.listdir())
 
