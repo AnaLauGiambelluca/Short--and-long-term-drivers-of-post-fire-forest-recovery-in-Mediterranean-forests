@@ -1,4 +1,17 @@
+# Using this code, with the coefficients and magnitudes of change of each pixel, the CCDC model is replicated, extracting the maximum NBR values ​​for each year
+# and calculating the 5 and 20 year post-fire recovery rates.
+
+# Libraries
+import pandas as pd
+import numpy as np
+import os
+import math
+from pandas.core.computation.check import NUMEXPR_INSTALLED
+from scipy.signal import argrelextrema
 from shapely.geometry import Point
+import seaborn as sns
+import matplotlib.pyplot as plt
+import geopandas as gpd
 
 
 Layer/...(Region).../04_Coef
