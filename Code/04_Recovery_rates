@@ -8,14 +8,17 @@ join=pd.read_csv('C:\\...\\Navarra_coef_mag.csv')
 
 join=juntos.copy()
 
+## We keep those pixels where the change (F_1,F_2....) was on the date of the fire ('FECHA') and where subsequent changes are only positive.
 F1=join.loc[((join.F_1==join.FECHA)&(join.F_2>=2023))&((join.F_1==join.FECHA)&(join.mag2>=0)&(join.mag3>=0)&(join.mag4>=0)&(join.mag5>=0)&(join.mag6>=0))]
 F2=join.loc[((join.F_2==join.FECHA)&(join.F_3>=2023))&((join.F_2==join.FECHA)&(join.mag3>=0)&(join.mag4>=0)&(join.mag5>=0)&(join.mag6>=0))]
 F3=join.loc[((join.F_3==join.FECHA)&(join.F_4>=2023))&((join.F_3==join.FECHA)&(join.mag4>=0)&(join.mag5>=0)&(join.mag6>=0))]
 F4=join.loc[((join.F_4==join.FECHA)&(join.F_5>=2023))&((join.F_4==join.FECHA)&(join.mag5>=0)&(join.mag6>=0))]
 F5=join.loc[(join.F_5==join.FECHA)&(join.F_6>=2023)]
 
+## We join all the rows
 juntos_nav=pd.concat([F1,F2,F3,F4,F5])
 
+## We repeat the steps for Catalonia and Valencia
 ## Coef of Catalonia
 join=pd.read_csv('C:\\...\\Catalonia_coef_mag.csv')
 
@@ -42,7 +45,7 @@ F5=join.loc[(join.F_5==join.FECHA)&(join.F_6>=2023)]
 
 juntos_val=pd.concat([F1,F2,F3,F4,F5])
 
-##### Join 
+##### When we condition the three regions, we join them by selecting the data of interest. 
 
 Nav=juntos_nav
 
@@ -57,15 +60,243 @@ Cat=Cat[['Row','ID', 'FECHA','longitude', 'latitude', 'geometry']]
 juntos=pd.concat([Nav,Val,Cat])
 
 
-#geometry = [Point(xy) for xy in zip(concatenados['longitude'], concatenados['latitude'])]
-#gdf = gpd.GeoDataFrame(concatenados, geometry=geometry, crs="EPSG:4326") 
-
-# 4. Export to shapefile. Layer 
-#gdf.to_file(r"C:\....\Puntos_sin_magneg.shp")
-
-
 ################################################################################################################################################
-## Select only the points without a second negative break, after the fire
+## Select only the points with summer mean NBR greater than 0.4
 ################################################################################################################################################
 
 
+archivos=list(os.listdir())
+
+df=pd.DataFrame(columns=['Row','ID','FECHA','NBR_mean','latitude','longitude'])
+df
+for i in range (len(archivos)):
+    prueba=pd.read_csv(archivos[i])
+    # print(len(prueba),i)
+    # print(prueba.columns, i)
+    prueba=prueba[['Row','ID','FECHA','NBR_mean','latitude','longitude']]
+    df=pd.concat([df,prueba])
+
+df=df.loc[df.NBR_mean>=0.4]
+
+juntos=pd.merge(df,juntos,on=['Row','ID'])
+juntos
+
+
+
+
+################################################################################################################################################
+## We calculate the recovery rate
+################################################################################################################################################
+
+# Detection of the peak before the disturbance
+def detect_peaks(valores,x_s,x_f, min_height=0.01):
+    principio=int(x_s.min())
+
+    fin=int(x_f.min())
+    x=fin-principio
+    if x<1:
+        peaks = argrelextrema(valores, np.greater, order=4)[0]
+    else:
+        dist=((371/x)/2)-2
+        distance=int(dist)
+        # print(distance)
+        peaks = argrelextrema(valores, np.greater, order=distance)[0]
+    return [peak for peak in peaks if valores[peak] >= min_height]
+
+def detect_peaks_last(valores,min_height=0.01):
+
+    peaks = argrelextrema(valores, np.greater, order=4)[0]
+    
+    return [peak for peak in peaks if valores[peak] >= min_height]
+
+
+# Calculate coefficients to recreate the CCDC fit
+def coef(select):
+    # Before
+    coefficients_1=np.array([select['Coef_1_1'],select['Coef_1_2'],select['Coef_1_3'],select['Coef_1_4'],select['Coef_1_5'],select['Coef_1_6'],select['Coef_1_7'],select['Coef_1_8']])
+    # After
+    coefficients_2=np.array([select['Coef_2_1'],select['Coef_2_2'],select['Coef_2_3'],select['Coef_2_4'],select['Coef_2_5'],select['Coef_2_6'],select['Coef_2_7'],select['Coef_2_8']])
+
+    # print('Coeficientes: ',coefficients_1[1])
+    return coefficients_1,coefficients_2
+
+# Consider the start date and split the time serie in order to have the same frequency in the time serie.
+def x_axes(select):
+    # Before
+    x_1 = np.linspace(select['Ts1'], select['t1'], int((1 - 0) /0.0027) + 1)
+    # After
+    x_2=np.linspace(select['Ts2'], select['t2'], int((1 - 0) / 0.0027) + 1)
+
+    # print('Eje x: ',x_1)
+    return x_1,x_2
+
+#Calculate the coefficients based on the function developed before and fit the model after and before the fire.
+
+def trigger(data):
+    coefficients_1,coefficients_2=coef(data)
+    x_1,x_2=x_axes(data)
+    y_pred=fit_function(x_1,coefficients_1)
+    y_after=fit_function(x_2,coefficients_2)
+    # print('Y predicho: ',y_pred)
+    return y_pred,y_after,x_1,x_2
+
+# Fit the function considering the different coefficients
+def reemplazar_valores(array):
+    return np.array([1 if abs(x) > 1 else x for x in array])
+
+
+
+def fit_function(x, coefficients):
+    # Extract individual coefficients
+    intercept = coefficients[0]
+    slope = coefficients[1]
+    sin_coeff = coefficients[2]
+    cos_coeff = coefficients[3]
+    sin2_coeff = coefficients[4]
+    cos2_coeff = coefficients[5]
+    sin3_coeff = coefficients[6]
+    cos3_coeff = coefficients[7]
+
+    # Calculate the predicted values using the coefficients and input data. Formula based on formula used in Google Earth Engine
+    pi=math.pi
+    Pi2=(2*pi)
+    #Pi2=pi
+    
+    y_pred=intercept + slope * x  + sin_coeff * np.sin(x*Pi2) + cos_coeff * np.cos(x*Pi2) + sin2_coeff * np.sin(2 *x*Pi2) + cos2_coeff * np.cos(2 *x*Pi2)+ sin3_coeff * np.sin(3 *x*Pi2) + cos3_coeff * np.cos(3 *x*Pi2)
+
+    y_pred=reemplazar_valores(y_pred)
+    #y_pred=intercept + slope * x  + sin_coeff *x* np.sin(Pi2) + cos_coeff *x* np.cos(Pi2) + sin2_coeff *x* np.sin(2 *Pi2) + cos2_coeff *x* np.cos(2 *Pi2)+ sin3_coeff *x* np.sin(3 *Pi2) + cos3_coeff *x* np.cos(3 *Pi2)
+    
+    return y_pred
+
+
+
+def coef_sig(select):
+    # Before
+    coefficients_3=np.array([select['Coef_3_1'],select['Coef_3_2'],select['Coef_3_3'],select['Coef_3_4'],select['Coef_3_5'],select['Coef_3_6'],select['Coef_3_7'],select['Coef_3_8']])
+    # After
+    coefficients_4=np.array([select['Coef_4_1'],select['Coef_4_2'],select['Coef_4_3'],select['Coef_4_4'],select['Coef_4_5'],select['Coef_4_6'],select['Coef_4_7'],select['Coef_4_8']])
+    
+    coefficients_5=np.array([select['Coef_5_1'],select['Coef_5_2'],select['Coef_5_3'],select['Coef_5_4'],select['Coef_5_5'],select['Coef_5_6'],select['Coef_5_7'],select['Coef_5_8']])
+    
+    coefficients_6=np.array([select['Coef_6_1'],select['Coef_6_2'],select['Coef_6_3'],select['Coef_6_4'],select['Coef_6_5'],select['Coef_6_6'],select['Coef_6_7'],select['Coef_6_8']])
+    
+
+    return coefficients_3,coefficients_4,coefficients_5,coefficients_6
+
+# Consider the start date and split the time serie in order to have the same frequency in the time serie.
+def x_axes_sig(select):
+    # Before
+    x_3 = np.linspace(select['Ts3'], select['t3'], int((1 - 0) /0.0027) + 1)
+    # After
+    x_4=np.linspace(select['Ts4'], select['t4'], int((1 - 0) / 0.0027) + 1)
+    
+    x_5=np.linspace(select['Ts5'], select['t5'], int((1 - 0) / 0.0027) + 1)
+    
+    x_6=np.linspace(select['Ts6'], select['t6'], int((1 - 0) / 0.0027) + 1)
+
+    return x_3,x_4,x_5,x_6
+
+#Calculate the coefficients based on the function developed before and fit the model after and before the fire.
+
+def trigger_sig(data):
+    coefficients_3,coefficients_4,coefficients_5,coefficients_6=coef_sig(data)
+    x_3,x_4,x_5,x_6=x_axes_sig(data)
+    y_3=fit_function(x_3,coefficients_3)
+    y_4=fit_function(x_4,coefficients_4)
+    y_5=fit_function(x_5,coefficients_5)
+    y_6=fit_function(x_6,coefficients_6)
+
+    return y_3,y_4,y_5,y_6,x_3,x_4,x_5,x_6
+
+
+prueba=juntos
+
+# Tasas
+nombres_columnas=[1983,1984,1985, 1986, 1987, 1988, 1989, 1990, 1991, 1992, 1993, 1994, 1995, 1996, 1997, 1998, 1999, 2000, 2001, 2002, 2003, 2004,2005, 2006, 2007, 2008, 2009, 2010, 2011,
+        2012, 2013, 2014, 2015, 2016, 2018, 2019, 2020, 2021, 2022, 2023,'Row']
+# Creation of other dataset to store the recovery information
+df_recovery_1=pd.DataFrame(columns=nombres_columnas)
+rows=list(prueba.Row)
+NBR_year=[]
+NBR_post=[]
+value_before=[]
+year=[]
+
+
+for i in range (len(prueba)):
+    data=prueba.iloc[i]
+    y_1,y_2,x_1,x_2 = trigger(data)
+    y_3,y_4,y_5,y_6,x_3,x_4,x_5,x_6=trigger_sig(data)
+    pic_ind_1 = detect_peaks(y_1,x_1,x_2) #El resultado son los indices con pico
+    pic_ind_2 = detect_peaks(y_2,x_2,x_3)
+    pic_ind_3 = detect_peaks(y_3,x_3,x_4) #El resultado son los indices con pico
+    pic_ind_4 = detect_peaks(y_4,x_4,x_5)
+    pic_ind_5 = detect_peaks(y_5,x_5,x_6) #El resultado son los indices con pico
+    pic_ind_6 = detect_peaks_last(y_6)
+
+    x_pic_3=x_3[pic_ind_3]
+    x_pic_4=x_4[pic_ind_4]
+    x_pic_5=x_5[pic_ind_5]
+    x_pic_6=x_6[pic_ind_6]
+
+
+    #Sustitution of y variable and calculate the NBR value
+    value_pred_1=y_1[pic_ind_1] # Tengo los valores de cada pico
+    value_pred_2=y_2[pic_ind_2]
+ 
+    #Sustitution of y variable and calculate the NBR value
+    value_pred_3=y_3[pic_ind_3] # Tengo los valores de cada pico
+    value_pred_4=y_4[pic_ind_4]
+    value_pred_5=y_5[pic_ind_5] # Tengo los valores de cada pico
+    value_pred_6=y_6[pic_ind_6]
+    
+    #Obtain the x (time serie) with the maximum value of NBR
+    x_pic_1=x_1[pic_ind_1]
+    x_pic_2=x_2[pic_ind_2]
+
+    
+    df1=pd.DataFrame({'Year':x_pic_1,'NBR_year':value_pred_1})
+    df2=pd.DataFrame({'Year':x_pic_2,'NBR_year':value_pred_2})
+    df3=pd.DataFrame({'Year':x_pic_3,'NBR_year':value_pred_3})
+    df4=pd.DataFrame({'Year':x_pic_4,'NBR_year':value_pred_4})
+    df5=pd.DataFrame({'Year':x_pic_5,'NBR_year':value_pred_5})
+    df6=pd.DataFrame({'Year':x_pic_6,'NBR_year':value_pred_6})
+    
+    df=pd.concat([df1,df2,df3,df4,df5,df6])
+    df['Year']=df['Year'].astype(int)
+    df=df.loc[(df.Year>1982)]#&(df.Year!=2004)]
+    df=df.groupby('Year')[['NBR_year']].max()
+    df=df.pivot_table(values='NBR_year', index='Year', aggfunc='first').T
+    df['Row']=str(data.Row)
+    df['ID']=str(data.ID)
+
+    df_recovery_1=pd.concat([df_recovery_1,df])
+
+
+
+join=pd.merge(juntos,df_recovery_1,on=['Row','ID'])
+
+for i in range (1984,2004,1):
+    print(i)
+    post=i+1
+    cinco=i+5
+    join.loc[(join.FECHA==i),['Rate_5']]=(join[cinco]-join[post])/5
+    veinte=i+20
+    join.loc[(join.FECHA==i),['Rate_20']]=(join[veinte]-join[post])/20
+
+
+tasas=join[['Row','ID','Rate_5','Rate_20']]
+print(len(tasas))
+tasas=tasas.dropna()
+print(len(tasas))
+
+NBR_mayor=pd.merge(tasas,juntos,on=['Row','ID'])
+NBR_mayor
+
+
+geometry = [Point(xy) for xy in zip(NBR_mayor['longitude'], NBR_mayor['latitude'])]
+gdf = gpd.GeoDataFrame(NBR_mayor, geometry=geometry, crs="EPSG:4326") # EPSG:4326 es el sistema de coordenadas WGS 84
+
+# 4. Exportar a shapefile
+gdf.to_file(r"C:\Users\giambelluca.144055\OneDrive\Doctorado\Articulos\Wildfire\Puntos\Puntos_no_negativos\Puntos_NBR_Mayores_04.gpkg")
