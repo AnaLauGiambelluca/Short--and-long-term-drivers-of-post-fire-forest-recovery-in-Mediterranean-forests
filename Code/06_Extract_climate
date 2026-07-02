@@ -1,5 +1,6 @@
 ## Code to extract the climatic variables at the points to be considered.
 
+# Import libraries
 
 import netCDF4 as nc4 
 import pandas as pd
@@ -21,7 +22,6 @@ def read_netCDF(dataPath, filename, nc_variable, lat_name='latitude', lon_name='
     lons = fileNc.variables[lon_name][:]
     data=fileNc.variables[nc_variable][:]
 
-
     # Invalid data is entered as Nan
     if hasattr(fileNc.variables[nc_variable], '_FillValue'):
         data[data==fileNc.variables[nc_variable]._FillValue] = 9999
@@ -31,7 +31,6 @@ def read_netCDF(dataPath, filename, nc_variable, lat_name='latitude', lon_name='
         for i in range(times.size):
             year, month, day, hour, minute = times[i].year, times[i].month, times[i].day, 12, 0
             times[i] = datetime(year, month, day, hour, minute)
-
     elif calendar == '360_day':
         valid_idates = []
         for i in range(times.size):
@@ -45,7 +44,6 @@ def read_netCDF(dataPath, filename, nc_variable, lat_name='latitude', lon_name='
         times = times[valid_idates]
 
     data = data.__array__()
-
     return {'data': data, 'times': times, 'lats': lats, 'lons': lons, 'calendar': calendar}  
 
 
