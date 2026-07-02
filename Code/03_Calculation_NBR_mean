@@ -83,9 +83,6 @@ var Land=Landsat4.merge(Landsat5).merge(Landsat7).merge(Landsat8);
 
 // We extract the average NBR each summer
 
-
-
-
 // Function to create a composite 
 function mosaicJ(collection,year){
   var month =collection.filterDate(year+'-07-01',year+'-08-31')
