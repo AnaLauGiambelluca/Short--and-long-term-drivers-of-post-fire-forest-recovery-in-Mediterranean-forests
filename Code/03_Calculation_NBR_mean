@@ -1,7 +1,7 @@
 // GEE code to extract the average summer NBR at each point
 
 
-// Fire is the point layer available in Layers/Wildfires
+// Fire is the point layer available in Layers/Wildfires/Wildfire_points_CCDC.zip
 
 var area=Fire.filter(ee.Filter.eq('FECHA', 1988));
 
@@ -111,7 +111,7 @@ var stats_hecho = ind_control.map(function(image) {
 .flatten()
 .filter(ee.Filter.neq('NBR_mean', null))
 
-// Export. Save the result in Layer/Wildfires
+// Export. Save the result in Layer/Wildfires/NBR_mean_point/... NBR_(Year)_summer_NBR.csv
 Export.table.toDrive({
    collection: stats_hecho,
    description: 'NBR_'+Y+'_summer_NBR',
