@@ -1,0 +1,62 @@
+## Code to extract the climatic variables at the points to be considered.
+
+
+import netCDF4 as nc4 
+import pandas as pd
+from datetime import datetime
+import numpy as np
+import os
+
+
+# Read files and the outcome is a dictionary with values, coordenates, day/hs and calendar. None data is labeled as 9999
+def read_netCDF(dataPath, filename, nc_variable, lat_name='latitude', lon_name='longitude', time_name='time'):
+
+    fileNc = nc4.Dataset(dataPath + '\\' + filename)
+
+    calendar = fileNc.variables[time_name].calendar
+    units = fileNc.variables[time_name].units
+    times=nc4.num2date(fileNc.variables[time_name][:],units=units,calendar=calendar)
+
+    lats = fileNc.variables[lat_name][:]
+    lons = fileNc.variables[lon_name][:]
+    data=fileNc.variables[nc_variable][:]
+
+
+    # Invalid data is entered as Nan
+    if hasattr(fileNc.variables[nc_variable], '_FillValue'):
+        data[data==fileNc.variables[nc_variable]._FillValue] = 9999
+    if np.ma.is_masked(data):
+        data = np.ma.MaskedArray.filled(data, fill_value=9999)
+    if calendar in ('365_day', 'standard'):
+        for i in range(times.size):
+            year, month, day, hour, minute = times[i].year, times[i].month, times[i].day, 12, 0
+            times[i] = datetime(year, month, day, hour, minute)
+
+    elif calendar == '360_day':
+        valid_idates = []
+        for i in range(times.size):
+            if not ((times[i].month == 2) and (times[i].day >= 29)):
+                valid_idates.append(i)
+                year = times[i].year
+                month = times[i].month
+                day = times[i].day
+                times[i] = datetime(year, month, day, 12, 0)
+        data = data[valid_idates]
+        times = times[valid_idates]
+
+    data = data.__array__()
+
+    return {'data': data, 'times': times, 'lats': lats, 'lons': lons, 'calendar': calendar}  
+
+
+## Load the data. You could found this daset in the following link:
+## https://1drv.ms/f/c/a157812fe5aa5851/IgBRWKrlL4FXIIChQR8BAAAAAUeeJGolUa9pB_vPwP42pXI?e=ZQ5oxH
+
+dataPath='C:...\\ERA5'
+
+
+archivos = [archivo for archivo in os.listdir(dataPath) if os.path.isfile(os.path.join(dataPath, archivo))]
+archivos
+
+
+
