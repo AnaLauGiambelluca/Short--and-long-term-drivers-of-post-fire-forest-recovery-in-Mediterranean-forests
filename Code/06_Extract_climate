@@ -7,6 +7,7 @@ import pandas as pd
 from datetime import datetime
 import numpy as np
 import os
+import geopandas as gpd
 
 
 # Read files and the outcome is a dictionary with values, coordenates, day/hs and calendar. None data is labeled as 9999
@@ -52,9 +53,112 @@ def read_netCDF(dataPath, filename, nc_variable, lat_name='latitude', lon_name='
 
 dataPath='C:...\\ERA5'
 
-
 archivos = [archivo for archivo in os.listdir(dataPath) if os.path.isfile(os.path.join(dataPath, archivo))]
 archivos
+
+# Name of the file
+filename='.....'
+# Name of the variable
+nc_variable=filename[0:2]
+
+#Study period
+y_start=1985
+y_end=2021
+
+fileNc = nc4.Dataset(dataPath + '\\' + filename)
+datos=read_netCDF(dataPath, filename, nc_variable)
+
+print(datos['data'].shape) 
+print(datos['times'].shape)
+print(datos['lats'].shape)
+print(datos['lons'].shape)
+
+
+copia=datos.copy()
+
+# Filter considering the extension of each community
+
+#Navarra
+# lat_min = 42.1956 
+# lat_max = 43.397 
+# lon_min = -2.4  
+# lon_max = -0.98 
+
+#Valencia
+# lat_min = 37.6
+# lat_max = 41
+# lon_min = -1.625
+# lon_max = 0.37378
+
+#Catalunia
+# lat_min = 39.56
+# lat_max = 42.83
+# lon_min = 0.06
+# lon_max = 4
+
+# Create the Boolean masks
+lat_mask = (datos['lats'] >= lat_min) & (datos['lats'] <= lat_max)
+lon_mask = (datos['lons'] >= lon_min)& (datos['lons'] <= lon_max)
+
+# Apply the filtering and create the dictionary with filtered data
+
+copia['lats'] = copia['lats'][lat_mask]
+copia['lons'] = copia['lons'][lon_mask]
+copia['data'] = copia['data'][:,lat_mask,:]
+copia['data'] = copia['data'][:,:,lon_mask]
+
+#Create a dataframe with: latitude, longidute, variable, year and month information
+df=pd.DataFrame()
+lat=[]
+lon=[]
+value=[]
+year=[]
+month=[]
+for i in range(y_start,y_end,1):
+    for x in range(copia['times'].size):
+        for m in range(1,13,1):
+            if (copia['times'][x].year==i)&(copia['times'][x].month==m):
+                for r in range (copia['data'][0,:,0].size):
+                    for c in range(copia['data'][0,0,:].size):
+                        lat.append(copia['lats'][r])
+                        lon.append(copia['lons'][c])
+                        value.append(copia['data'][x,r,c])
+                        year.append(i)
+                        month.append(m)
+            else:
+                continue
+
+df['Latitude']=lat
+df['Longitude']=lon
+df[nc_variable]=value
+df['Year']=year
+df['Month']=month
+
+df_test=df.copy()
+
+# Export the data as point. 
+
+for y in range(y_start,y_end,1):
+    for m in range(1,13,1):
+        filter_df=df_test.loc[(df_test['Year']==y)&(df_test['Month']==m)&(df_test[nc_variable]!=9999)]
+  
+        mensual=filter_df.groupby(['Latitude','Longitude','Year','Month'])[nc_variable].mean().reset_index()
+
+#In case of extract precipitation we have to comment the prevous code and uncomment the following one.
+        # mensual=filter_df.groupby(['Latitude','Longitude','Year','Month'])[nc_variable].sum().reset_index()
+        geo=gpd.GeoDataFrame(mensual, geometry=gpd.points_from_xy(mensual.Longitude, mensual.Latitude))
+        gdf=geo.set_crs(4326, allow_override=True)
+        ruta=direction+'\\'+str(y)+'_'+str(m)+'_'+nc_variable+'.gpkg'
+        gdf.to_file(ruta, driver='GPKG') 
+
+#In QGIS we interpolate the data using cubic interpolation and export rasters with this climate information.
+Link:
+Valencia: 
+Rain: https://1drv.ms/f/c/a157812fe5aa5851/IgBRWKrlL4FXIIChszECAAAAAXJKvg0zA01DdmDgs8Sjh1g?e=olShtF
+Tmax: https://1drv.ms/f/c/a157812fe5aa5851/IgBRWKrlL4FXIIChGi0CAAAAAdXXUWap_PFyOP26LwQNBSY?e=VMqTsn
+Tmin: https://1drv.ms/f/c/a157812fe5aa5851/IgBRWKrlL4FXIIChATACAAAAAXu4tnMtVYxqhpjayY3jF3U?e=Ex7h5r
+
+
 
 
 
