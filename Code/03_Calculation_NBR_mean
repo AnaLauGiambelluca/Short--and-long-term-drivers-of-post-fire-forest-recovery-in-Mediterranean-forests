@@ -1,9 +1,11 @@
 // GEE code to extract the average summer NBR at each point
 
+// Change using each year
+var Y='1987';
 
 // Fire is the point layer available in Layers/Wildfires/Wildfire_points_CCDC.zip
 
-var area=Fire.filter(ee.Filter.eq('FECHA', 1988));
+var area=Fire.filter(ee.Filter.eq('FECHA', Y+1));
 
 // Functions to calculate the vegetation index NBR
 // Code for Landsat 4,5,7
@@ -82,8 +84,7 @@ var Land=Landsat4.merge(Landsat5).merge(Landsat7).merge(Landsat8);
 // We extract the average NBR each summer
 
 
-// Change using each year
-var Y='1987';
+
 
 // Function to create a composite 
 function mosaicJ(collection,year){
