@@ -11,7 +11,7 @@ This folder has all the code implemented in the article called "Short- and Long-
 *Corresponding author: analaura.giambelluca@unavarra.es
 
 
-[Scripts](Code):
+[Scripts](Code)
 
 [Reference layers used](Layers)
 
@@ -26,8 +26,6 @@ Esta carpeta tiene todo el código implementado en el artículo llamado "Short- 
 *Autor de correspondencia: analaura.giambelluca@unavarra.es
 
 
+[Códigos](Code)
 
-Los códigos usados son:
-
-
-Las capas de referencia utilizadas son:
+[Capas de referencia usadas](Layers)
