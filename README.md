@@ -11,11 +11,9 @@ This folder has all the code implemented in the article called "Short- and Long-
 *Corresponding author: analaura.giambelluca@unavarra.es
 
 
-The codes used are:
+[Scripts](Code):
 
-
-
-The reference layers used are:
+[Reference layers used](Layers)
 
 
 ## Español
