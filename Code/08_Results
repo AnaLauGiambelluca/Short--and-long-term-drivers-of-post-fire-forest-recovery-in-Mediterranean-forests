@@ -1,0 +1,477 @@
+# Script for:
+# Calculation of correlations
+# Obtain the Random Forest models
+# Calculate the partial dependencies.
+
+# Import libraries
+import pandas as pd
+import numpy as np
+import os
+import math
+from pandas.core.computation.check import NUMEXPR_INSTALLED
+from scipy.signal import argrelextrema
+import seaborn as sns
+import matplotlib.pyplot as plt
+import geopandas as gpd
+from sklearn.inspection import permutation_importance
+import matplotlib.pyplot as plt
+import numpy as np
+from matplotlib import cm
+from matplotlib.colors import Normalize
+from scipy.stats import gaussian_kde
+
+# Loading of points with data on climate, topography, and pre-fire conditions.
+join_r=pd.read_csv(r'C:\...\Datos_25042025_NBR.csv')
+
+
+#####################################################################################################################################################
+##                                                          Correlations                                                                           ##
+#####################################################################################################################################################
+
+df=join_r[['Slope','Elevation', 'CosAspect',  'NBR_pre_fire', 'SPEI6_5', 'Prec_5', 'Tmin_5', 'Tmax_5', 'Rate_5']]
+df.columns=['Slope','Elevation', 'CosAspect', 'NBR pre fire', 'SPEI6 5', 'Prec 5', 'Tmin 5', 'Tmax 5', 'Rate 5']
+
+np.random.seed(42)
+data = df
+
+def correlation_matrix(df, font_scale=1, value_fontsize=24, **kwargs):
+    sns.set_context("talk", font_scale=font_scale)
+    grid = sns.PairGrid(df, **kwargs)
+
+    def hist_with_freq(x, **kwargs):
+        sns.histplot(x, kde=True, **kwargs)
+        ax = plt.gca()
+        ax.set_ylabel("Frecuencia", fontsize=24) 
+        ax.tick_params(axis='both', labelsize=20)  # Ajusta el tamaño de la fuente del nombre del eje y
+        if ax.get_position().y0 <= 0.5:
+            ax.set_ylim(bottom=0)
+
+    def density_scatter_plot(x, y, **kwargs):
+        values = np.vstack((x, y))
+        kernel = gaussian_kde(values)
+        kde = kernel.evaluate(values)
+        norm = Normalize(vmin=kde.min(), vmax=kde.max())
+        colors = cm.ScalarMappable(norm=norm, cmap='viridis').to_rgba(kde)
+        kwargs['color'] = colors
+        plt.xlabel(x.name, fontsize=24)  # Ajusta el tamaño de la fuente del nombre del eje x
+        plt.ylabel(y.name, fontsize=24)  # Ajusta el tamaño de la fuente del nombre del eje y
+        return plt.scatter(x, y, **kwargs)
+
+    grid.map_lower(density_scatter_plot, alpha=0.5)
+    grid.map_diag(hist_with_freq)
+
+    def corr_coeff(x, y, **kwargs):
+        corr = np.corrcoef(x, y)[0, 1]
+        ax = plt.gca()
+        ax.annotate(f"{corr:.2f}", xy=(0.5, 0.5), xycoords=ax.transAxes,
+                    ha="center", va="center", fontsize=value_fontsize, color="black")
+
+    grid.map_upper(corr_coeff)
+    return grid
+
+# Generar la visualización
+g = correlation_matrix(data, font_scale=1, value_fontsize=24, corner=False)
+
+for i, ax in enumerate(g.axes.flat):
+    row = i // g.axes.shape[1]
+    col = i % g.axes.shape[1]
+    if row < col:
+        ax.tick_params(bottom=False, left=False, labelsize=20)  # Ajusta el tamaño de la fuente de las etiquetas de los ticks
+    else:
+        ax.tick_params(axis='both', labelsize=20)  # Ajusta el tamaño de la fuente de las etiquetas de los ticks
+
+plt.rcParams["font.family"] = "Arial"
+plt.rcParams["font.size"] = 24
+
+# plt.savefig(f"tasa5_ correlaciones_S_NBR.tiff", dpi=300, format="tiff")
+# plt.show()
+
+
+df=join_r[['Slope','Elevation', 'CosAspect',  'NBR_pre_fire', 'SPEI6_20', 'Prec_20', 'Tmin_20', 'Tmax_20', 'Rate_20']]
+df.columns=['Slope','Elevation', 'CosAspect', 'NBR pre fire', 'SPEI6 20', 'Prec 20', 'Tmin 20', 'Tmax 20', 'Rate 20']
+
+np.random.seed(42)
+data = df
+
+# Función personalizada para agregar correlaciones
+def correlation_matrix(df, font_scale=1, value_fontsize=24, **kwargs):
+    sns.set_context("talk", font_scale=font_scale)
+    grid = sns.PairGrid(df, **kwargs)
+
+    def hist_with_freq(x, **kwargs):
+        sns.histplot(x, kde=True, **kwargs)
+        ax = plt.gca()
+        ax.set_ylabel("Frecuencia", fontsize=24) 
+        ax.tick_params(axis='both', labelsize=20)  # Ajusta el tamaño de la fuente del nombre del eje y
+        if ax.get_position().y0 <= 0.5:
+            ax.set_ylim(bottom=0)
+
+    def density_scatter_plot(x, y, **kwargs):
+        values = np.vstack((x, y))
+        kernel = gaussian_kde(values)
+        kde = kernel.evaluate(values)
+        norm = Normalize(vmin=kde.min(), vmax=kde.max())
+        colors = cm.ScalarMappable(norm=norm, cmap='viridis').to_rgba(kde)
+        kwargs['color'] = colors
+        plt.xlabel(x.name, fontsize=24)  # Ajusta el tamaño de la fuente del nombre del eje x
+        plt.ylabel(y.name, fontsize=24)  # Ajusta el tamaño de la fuente del nombre del eje y
+        return plt.scatter(x, y, **kwargs)
+
+    grid.map_lower(density_scatter_plot, alpha=0.5)
+    grid.map_diag(hist_with_freq)
+
+    def corr_coeff(x, y, **kwargs):
+        corr = np.corrcoef(x, y)[0, 1]
+        ax = plt.gca()
+        ax.annotate(f"{corr:.2f}", xy=(0.5, 0.5), xycoords=ax.transAxes,
+                    ha="center", va="center", fontsize=value_fontsize, color="black")
+
+    grid.map_upper(corr_coeff)
+    return grid
+
+# Generar la visualización
+g = correlation_matrix(data, font_scale=1, value_fontsize=24, corner=False)
+
+for i, ax in enumerate(g.axes.flat):
+    row = i // g.axes.shape[1]
+    col = i % g.axes.shape[1]
+    if row < col:
+        ax.tick_params(bottom=False, left=False, labelsize=20)  # Ajusta el tamaño de la fuente de las etiquetas de los ticks
+    else:
+        ax.tick_params(axis='both', labelsize=20)  # Ajusta el tamaño de la fuente de las etiquetas de los ticks
+
+plt.rcParams["font.family"] = "Arial"
+plt.rcParams["font.size"] = 24
+
+# plt.savefig(f"tasa20_ correlaciones_S_NBR.tiff", dpi=300, format="tiff")
+
+####################################################################################################################################################
+##                                                                VIF                                                                             ##
+####################################################################################################################################################
+
+import pandas as pd
+from statsmodels.stats.outliers_influence import variance_inflation_factor
+from statsmodels.tools.tools import add_constant
+
+# 1. Select only the columns you used as predictors (drivers)
+# Use the 'join_r' dataframe from your previous code
+variables = join_r[['Slope','Elevation', 'CosAspect', 'NBR_pre_fire', 
+                    'SPEI6_5','Prec_5', 'Tmin_5', 'Species']]
+
+# 2. It is mandatory to add a constant for the statistical calculation of the VIF.
+X = add_constant(variables)
+
+# 3. We calculate the VIF for each variable.
+vif_data = pd.DataFrame()
+vif_data["Variable"] = X.columns
+vif_data["VIF"] = [variance_inflation_factor(X.values, i) for i in range(X.shape[1])]
+
+# 4. We display the results (omitting the 'const' row, which is of no interest to us).
+print(vif_data[vif_data['Variable'] != 'const'])
+
+### 20 years post-fire
+
+# 1.  Select only the columns you used as predictors (drivers)
+# Usamos el dataframe 'join_r' de tu código anterior
+variables = join_r[['Slope','Elevation', 'CosAspect', 'NBR_pre_fire', 
+                    'SPEI6_20','Prec_20', 'Tmin_20', 'Species']]
+
+# 2. It is mandatory to add a constant for the statistical calculation of the VIF.
+X = add_constant(variables)
+
+# 3. We calculate the VIF for each variable.
+vif_data = pd.DataFrame()
+vif_data["Variable"] = X.columns
+vif_data["VIF"] = [variance_inflation_factor(X.values, i) for i in range(X.shape[1])]
+
+# 4. We display the results (omitting the 'const' row, which is of no interest to us).
+print(vif_data[vif_data['Variable'] != 'const'])
+
+
+
+####################################################################################################################################################
+##                                                      Random Forest                                                                             ##
+####################################################################################################################################################
+
+# We transform the qualitative species variable into a quantitative class.
+join_r.loc[(join_r['Especie1']=='Quercus ilex'),['Sp_clas']]=[1]
+join_r.loc[(join_r['Especie1']== 'Pinus halepensis'),['Sp_clas']]=[2]
+join_r.loc[(join_r['Especie1']=='Quercus faginea'),['Sp_clas']]=[3]
+join_r.loc[(join_r['Especie1']=='Pinus uncinata'),['Sp_clas']]=[4]
+join_r.loc[(join_r['Especie1']=='Pinus pinaster'),['Sp_clas']]=[5]
+join_r.loc[(join_r['Especie1']=='Pinus pinea'),['Sp_clas']]=[6]
+join_r.loc[(join_r['Especie1']=='Pinus sylvestris'),['Sp_clas']]=[7]
+join_r.loc[(join_r['Especie1']=='Quercus humilis (Q. Pubescens)'),['Sp_clas']]=[8]
+join_r.loc[(join_r['Especie1']=='Quercus robur'),['Sp_clas']]=[9]
+join_r.loc[(join_r['Especie1']=='Pinus radiata'),['Sp_clas']]=[10]
+join_r.loc[(join_r['Especie1']=='Quercus suber'),['Sp_clas']]=[11]
+join_r.loc[(join_r['Especie1']=='Pinus canariensis'),['Sp_clas']]=[12]
+join_r.loc[(join_r['Especie1']=='Quercus rubra'),['Sp_clas']]=[13]
+join_r.loc[(join_r['Especie1']=='Pinus nigra'),['Sp_clas']]=[14]
+
+# We calculate the cosine of aspect
+join_r['CosAspect']=np.cos(join_r['Aspect'])
+
+# Rename the columns
+join_r=join_r[['Row', 'ID', 'NBR_pre_fire', 'NBR_post_fire', 'IDs',
+       'ID_forest', 'Magnitude', 'Severity', 'Slope', 'Aspect', 'Face', 'TRSI',
+       'Elevation', 'North', 'East', 'CCAA', 'Especie1', 'MFE_1985_R', 'FECHA',
+       'Label', 'Range_S', 'Range_H', 'Rate_5', 'Rate_20', 'NBR_mean',
+       'latitude', 'longitude', 'Prec_5', 'Prec_20', 'Tmax_5', 'Tmax_20',
+       'Tmin_5', 'Tmin_20', 'SPEI6_5', 'SPEI6_20', 'Sp_clas','CosAspect']]
+
+join_r.columns=['Row', 'ID', 'NBR_pre_fire', 'NBR_post_fire', 'IDs', 'ID_forest',
+       'Magnitude', 'Severity', 'Slope', 'Aspect', 'Face', 'TRSI', 'Elevation',
+       'North', 'East', 'CCAA', 'Especie1', 'MFE_1985_R', 'FECHA', 'Label',
+       'Range_S', 'Range_H', 'Rate_5', 'Rate_20', 'NBR_mean', 'latitude',
+       'longitude', 'Prec_5', 'Prec_20', 'Tmax_5', 'Tmax_20', 'Tmin_5',
+       'Tmin_20', 'SPEI6_5', 'SPEI6_20', 'Species','CosAspect']
+
+copia=join_r.copy()
+
+# We repite the following code for each severity category.
+join_r=copia.loc[(copia.Severity=='High')]
+
+# We set the timescale
+timescale=20 # 20 (long-term) or 5 (short-term)
+
+if timescale==20:
+    variables=['Slope','Elevation', 'CosAspect', 'NBR_pre_fire', 'SPEI6_20','Prec_20', 'Tmin_20', 'Species']
+    target=['Rate_20']
+
+else:
+    variables=['Slope','Elevation', 'CosAspect', 'NBR_pre_fire', 'SPEI6_5','Prec_5', 'Tmin_5', 'Species']
+    target=['Rate_5']
+
+# We split the dataset
+X_train, X_test, y_train, y_test = model_selection.train_test_split(join_r[variables], join_r[target], train_size=0.7, random_state=12)
+
+# We optimize the hiperparameters using cross validation
+
+np.random.seed(12)
+RF = RandomForestRegressor()
+
+param_grid = {'n_estimators': [50,100,300],'min_samples_leaf':[1,10,20],'max_features':['sqrt', 'log2', 1]}
+
+clasificadoresRF = model_selection.GridSearchCV(RF, param_grid, scoring='r2', cv=10, return_train_score=True)
+
+clasificadoresRF = clasificadoresRF.fit(X_train, y_train.values.ravel())
+
+# Best combination
+print(clasificadoresRF.best_params_)
+print(clasificadoresRF.best_score_)
+
+# Accuracy for each combination
+resultadosMostrar = zip(clasificadoresRF.cv_results_['params'],clasificadoresRF.cv_results_['mean_test_score'],clasificadoresRF.cv_results_['mean_train_score'])
+for params, mean_test_score, mean_train_score in resultadosMostrar:
+    print("%0.3f (Train: %0.3f) for %r" % (mean_test_score, mean_train_score, params))
+print()
+# We save the best combination
+RF = clasificadoresRF.best_estimator_
+
+# We calculate the importance of the drivers and we obtain the accuracy of the model using the test dataset.
+r = permutation_importance(RF, X_test, y_test,
+                           n_repeats=30,
+                           random_state=12)
+
+for i in r.importances_mean.argsort()[::-1]:
+    # print(i)
+    print(f"{variables[i]:<8}"
+              f" {r.importances_mean[i]:.3f}"
+              f" +/- {r.importances_std[i]:.3f}")
+
+y_pred = RF.predict(X_test)
+custom_r2 = r2_score(y_test, y_pred)
+print(' ')
+print(' ')
+print(f"R2 score (custom) {custom_r2}")
+custom_rmse = mean_absolute_error(y_test, y_pred)
+print(f"RMSE: {custom_rmse}")
+
+
+
+
+# Partial dependencies
+
+from sklearn.inspection import PartialDependenceDisplay
+from sklearn.model_selection import train_test_split
+from sklearn.ensemble import RandomForestRegressor
+import itertools
+
+join_r=copia
+
+conversor=1/2.54
+
+# We set the timescale (short-term = 5 and long-term = 20)
+timescale=5
+
+if timescale==20:
+    variables=['Slope','Elevation', 'CosAspect', 'NBR_pre_fire', 'SPEI6_20','Prec_20', 'Tmin_20', 'Species','Rate_20','Severity']
+  
+else:
+    variables=['Slope','Elevation', 'CosAspect', 'NBR_pre_fire', 'SPEI6_5','Prec_5', 'Tmin_5', 'Species','Rate_5','Severity']
+
+df=join_r[variables]
+
+np.random.seed(12)
+
+# Drivers
+variables = ['Slope', 'Elevation', 'CosAspect', 'SPEI6 5', 'Tmin 5', 'Prec 5','NBR pre fire','Species']
+
+# We split the dataset considering the type of severity.
+h=df.loc[(df.Severity=='High')]
+mh=df.loc[(df.Severity=='Mod_High')]
+ml=df.loc[(df.Severity=='Mod_Low')]
+l=df.loc[(df.Severity=='Low')]
+
+# We separate dependent and independent variables 
+Xh = h[['Slope', 'Elevation', 'CosAspect','SPEI6_5',  'Tmin_5', 'Prec_5','NBR_pre_fire','Species']]
+yh = h[['Rate_5']]
+
+Xmh = mh[['Slope', 'Elevation', 'CosAspect', 'SPEI6_5',  'Tmin_5', 'Prec_5','NBR_pre_fire','Species']]
+ymh = mh[['Rate_5']]
+
+Xml = ml[['Slope', 'Elevation', 'CosAspect','SPEI6_5',  'Tmin_5', 'Prec_5','NBR_pre_fire','Species']]
+yml = ml[['Rate_5']]
+
+Xl = l[['Slope', 'Elevation', 'CosAspect', 'SPEI6_5',  'Tmin_5', 'Prec_5','NBR_pre_fire','Species']]
+yl = l[['Rate_5']]
+
+# Partitioning the data into training and test sets, and using the best hyperparameters obtained previously.
+
+X_trainh, X_testh, y_trainh, y_testh = train_test_split(Xh, yh, train_size=0.7, random_state=12)
+X_trainmh, X_testmh, y_trainmh, y_testmh = train_test_split(Xmh, ymh, train_size=0.7, random_state=12)
+X_trainml, X_testml, y_trainml, y_testml = train_test_split(Xml, yml, train_size=0.7, random_state=12)
+X_trainl, X_testl, y_trainl, y_testl = train_test_split(Xl, yl, train_size=0.7, random_state=12)
+
+# Create four Random Forest models
+modelh = RandomForestRegressor(max_features= 'log2', min_samples_leaf=10 , n_estimators=100 , random_state=12)
+modelmh = RandomForestRegressor(max_features= 'sqrt', min_samples_leaf=1 , n_estimators=300 , random_state=12)
+modelml = RandomForestRegressor(max_features= 1, min_samples_leaf=1 , n_estimators=300 , random_state=12)
+modell = RandomForestRegressor(max_features= 'sqrt', min_samples_leaf=1 , n_estimators=300 , random_state=12)
+
+
+# Fit the models
+modelh.fit(X_trainh, y_trainh.values.ravel())
+modelmh.fit(X_trainmh, y_trainmh.values.ravel())
+modelml.fit(X_trainml, y_trainml.values.ravel())
+modell.fit(X_trainl, y_trainl.values.ravel())
+
+# Make a graph
+columnas_histogramas = variables
+
+num_filas = (len(columnas_histogramas) + 1) // 2  
+num_columnas = min(len(columnas_histogramas), 2)
+
+fig, axes = plt.subplots(nrows=num_filas, ncols=num_columnas,sharey=True, figsize=(10, 5 * num_filas))
+axes = axes.flatten() 
+
+features = [0, 1, 2,3,4,5,6,7,8,9]
+colores = ['#9a031e', '#fb8b24', '#fdc500', '#0f4c5c']
+etiquetas = ['High', 'Moderate-High', 'Moderate-Low', 'Low']
+handles = []
+labels = []
+
+
+for i in range(0,8,1):
+    display_h =PartialDependenceDisplay.from_estimator(modelh, Xh, [i],ax=axes[i], line_kw={'color': '#9a031e'})
+    PartialDependenceDisplay.from_estimator(modelmh, Xmh, [i],ax=display_h.axes_, line_kw={'color': '#fb8b24'})
+    PartialDependenceDisplay.from_estimator(modelml, Xml, [i],ax=display_h.axes_, line_kw={'color': '#fdc500'})
+    PartialDependenceDisplay.from_estimator(modell, Xl, [i],ax=display_h.axes_, line_kw={'color': '#0f4c5c'})
+    plt.rcParams['font.family'] = 'Arial'
+    plt.rcParams['font.size'] = 24
+    plt.xlabel(variables[i], fontsize=24)  
+    plt.ylabel(' ') 
+    plt.ylim(0.004, 0.01)
+
+if len(columnas_histogramas) < num_filas * num_columnas:
+    for j in range(len(columnas_histogramas), num_filas * num_columnas):
+        fig.delaxes(axes[j])
+
+for color, label in zip(colores, etiquetas):
+    line = plt.Line2D([0], [0], color=color, label=label)
+    handles.append(line)
+    labels.append(label)
+
+
+fig.legend(handles, labels, loc='lower center', bbox_to_anchor=(0.5, -0.05), fontsize=24, ncol=2)
+fig.tight_layout()
+
+## We repeat the process considering the long-term.
+
+df=join_r[['Severity','Slope', 'Elevation', 'CosAspect','Magnitude', 'SPEI6_20',  'Tmin_20', 'Prec_20','NBR_pre_fire','Species','Rate_20']]
+
+variables = ['Slope', 'Elevation', 'CosAspect', 'SPEI6 20', 'Tmin 20', 'Prec 20','NBR pre fire', 'Species']
+
+h=df.loc[(df.Severity=='High')]
+mh=df.loc[(df.Severity=='Mod_High')]
+ml=df.loc[(df.Severity=='Mod_Low')]
+l=df.loc[(df.Severity=='Low')]
+
+Xh = h[['Slope', 'Elevation', 'CosAspect','SPEI6_20',  'Tmin_20', 'Prec_20','NBR_pre_fire', 'Species']]
+yh = h[['Rate_20']]
+
+Xmh = mh[['Slope', 'Elevation', 'CosAspect','SPEI6_20',  'Tmin_20', 'Prec_20','NBR_pre_fire', 'Species']]
+ymh = mh[['Rate_20']]
+
+Xml = ml[['Slope', 'Elevation', 'CosAspect','SPEI6_20', 'Tmin_20', 'Prec_20','NBR_pre_fire', 'Species']]
+yml = ml[['Rate_20']]
+
+Xl = l[['Slope', 'Elevation', 'CosAspect','SPEI6_20',  'Tmin_20', 'Prec_20','NBR_pre_fire', 'Species']]
+yl = l[['Rate_20']]
+
+
+X_trainh, X_testh, y_trainh, y_testh = train_test_split(Xh, yh, train_size=0.7, random_state=12)
+X_trainmh, X_testmh, y_trainmh, y_testmh = train_test_split(Xmh, ymh, train_size=0.7, random_state=12)
+X_trainml, X_testml, y_trainml, y_testml = train_test_split(Xml, yml, train_size=0.7, random_state=12)
+X_trainl, X_testl, y_trainl, y_testl = train_test_split(Xl, yl, train_size=0.7, random_state=12)
+
+modelh = RandomForestRegressor(max_features= 'log2', min_samples_leaf=1 , n_estimators=300 , random_state=12)
+modelmh = RandomForestRegressor(max_features= 'sqrt', min_samples_leaf=1 , n_estimators=300 , random_state=12)
+modelml = RandomForestRegressor(max_features= 'sqrt', min_samples_leaf=1 , n_estimators=300 , random_state=12)
+modell = RandomForestRegressor(max_features= 'log2', min_samples_leaf=1 , n_estimators=300 , random_state=12)
+
+modelh.fit(X_trainh, y_trainh.values.ravel())
+modelmh.fit(X_trainmh, y_trainmh.values.ravel())
+modelml.fit(X_trainml, y_trainml.values.ravel())
+modell.fit(X_trainl, y_trainl.values.ravel())
+
+columnas_histogramas = variables
+
+num_filas = (len(columnas_histogramas) + 1) // 2  # Ajusta según necesites la disposición
+num_columnas = min(len(columnas_histogramas), 2)
+
+fig, axes = plt.subplots(nrows=num_filas, ncols=num_columnas,sharey=True, figsize=(10, 5 * num_filas))
+axes = axes.flatten() # Para facilitar la indexación si solo hay una fila o columna
+
+features = [0, 1, 2,3,4,5,6,7,8,9,10]
+colores = ['#9a031e', '#fb8b24', '#fdc500', '#0f4c5c']
+etiquetas = ['High', 'Moderate-High', 'Moderate-Low', 'Low']
+handles = []
+labels = []
+
+
+for i in range(0,8,1):
+    display_h =PartialDependenceDisplay.from_estimator(modelh, Xh, [i],ax=axes[i], line_kw={'color': '#9a031e'})
+    PartialDependenceDisplay.from_estimator(modelmh, Xmh, [i],ax=display_h.axes_, line_kw={'color': '#fb8b24'})
+    PartialDependenceDisplay.from_estimator(modelml, Xml, [i],ax=display_h.axes_, line_kw={'color': '#fdc500'})
+    PartialDependenceDisplay.from_estimator(modell, Xl, [i],ax=display_h.axes_, line_kw={'color': '#0f4c5c'})
+    plt.rcParams['font.family'] = 'Arial'
+    plt.rcParams['font.size'] = 24
+    plt.xlabel(variables[i], fontsize=24)  # Ajusta el tamaño de la fuente del nombre del eje x
+    plt.ylabel(' ') 
+    
+    plt.ylim(0.004, 0.01)
+
+if len(columnas_histogramas) < num_filas * num_columnas:
+    for j in range(len(columnas_histogramas), num_filas * num_columnas):
+        fig.delaxes(axes[j])
+
+for color, label in zip(colores, etiquetas):
+    line = plt.Line2D([0], [0], color=color, label=label)
+    handles.append(line)
+    labels.append(label)
+
+
+fig.legend(handles, labels, loc='lower center', bbox_to_anchor=(0.5, -0.05), fontsize=24, ncol=2)
+fig.tight_layout()
