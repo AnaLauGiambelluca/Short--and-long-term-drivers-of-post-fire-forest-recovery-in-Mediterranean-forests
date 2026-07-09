@@ -13,6 +13,8 @@ This folder has all the code implemented in the article called "Short- and Long-
 
 [Reference layers used](Layers)
 
+# Workflow
+
 ```mermaid
 graph TD
     %% Phase 1: Forest Masking & Preprocessing
@@ -33,7 +35,7 @@ graph TD
         J --> K[(CSV: Pixel Coefficients)]
         
         F --> L[Code 03: Extract Mean Pre-fire Summer NBR <br/> <i>GEE</i>]
-        L --> M[(CSV: Pre-fire NBR)]
+        L --> M[(CSV: NBR value year pre-fire)]
         
         K & M --> N[Code 04: Filter NBR < 0.4 & Calculate Recovery Rates <br/> <i>Python</i>]
         N --> O[(Points with Recovery Rates)]
