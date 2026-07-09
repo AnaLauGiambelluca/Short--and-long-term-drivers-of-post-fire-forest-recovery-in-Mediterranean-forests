@@ -1,5 +1,6 @@
 # Script for:
 # Calculation of correlations
+# Calculation of VIF
 # Obtain the Random Forest models
 # Calculate the partial dependencies.
 
@@ -289,9 +290,11 @@ custom_rmse = mean_absolute_error(y_test, y_pred)
 print(f"RMSE: {custom_rmse}")
 
 
+####################################################################################################################################################
+##                                               Partial dependencies                                                                             ##
+####################################################################################################################################################
 
 
-# Partial dependencies
 
 from sklearn.inspection import PartialDependenceDisplay
 from sklearn.model_selection import train_test_split
