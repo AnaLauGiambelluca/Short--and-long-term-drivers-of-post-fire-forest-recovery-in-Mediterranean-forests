@@ -1,4 +1,7 @@
-// GEE code to extract the average summer NBR at each point
+// Google Earth Engine code to extract the average summer NBR at each point
+
+// Author: Ana Laura Giambelluca
+// Google Earth Engine
 
 // Change using each year
 var Y='1987';
