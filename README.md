@@ -55,7 +55,7 @@ graph TD
         
         X[(ASTER DEM)] --> Y[QGIS: Extract Topographic Variables <br/> Elevation, Slope, Aspect]
         
-        W & Y & Q & I & M --> Z[QGIS: Join Layers <br/> Combine Climate, Topography, Magnitude, NBR & Species]
+        W & Y & Q --> Z[QGIS: Join Layers <br/> Combine Climate, Topography, Magnitude, NBR & Species]
         Z --> AA[(Final Unified Dataset)]
     end
 
