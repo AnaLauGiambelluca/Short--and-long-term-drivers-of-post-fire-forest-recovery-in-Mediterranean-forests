@@ -1,5 +1,9 @@
 ## Code to extract the climatic variables at the points to be considered.
 
+## Author: Ana Laura Giambelluca
+## Jupyter Notebook
+
+
 # Import libraries
 
 import netCDF4 as nc4 
