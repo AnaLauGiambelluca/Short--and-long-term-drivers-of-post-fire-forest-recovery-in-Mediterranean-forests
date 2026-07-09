@@ -15,6 +15,7 @@ This folder has all the code implemented in the article called "Short- and Long-
 
 [Reference layers used](Layers)
 
+```mermaid
 graph TD
     %% Phase 1: Forest Masking & Preprocessing
     subgraph Phase 1: Forest Masking & Preprocessing
@@ -65,6 +66,7 @@ graph TD
         AB --> AD[10 Random Forest Models <br/> Short/Long-term & Severity-stratified]
         AB --> AE[Partial Dependence Plots PDPs]
     end
+
 ## Español
 
 Esta carpeta tiene todo el código implementado en el artículo llamado "Short- and Long-Term Drivers of Post-Fire Forest Recovery in Mediterranean Forests" escrito por Ana Laura Giambelluca *(1), Txomin Hermosilla (2), María González-Audícana (1), Jesús Álvarez-Mozos (1)
