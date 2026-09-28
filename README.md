@@ -8,7 +8,7 @@ This folder has all the code implemented in the article called "Short- and Long-
 
 *Corresponding author: analaura.giambelluca@unavarra.es
 
-Doi: [10.1016/j.ecoinf.2026.104064](https://10.1016/j.ecoinf.2026.104064)
+Doi: [10.1016/j.ecoinf.2026.104064]([https://10.1016/j.ecoinf.2026.104064](https://www.sciencedirect.com/science/article/pii/S1574954126004723#da0005))
 
 
 [Scripts](Code)
