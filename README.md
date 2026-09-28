@@ -8,6 +8,8 @@ This folder has all the code implemented in the article called "Short- and Long-
 
 *Corresponding author: analaura.giambelluca@unavarra.es
 
+Doi: 10.1016/j.ecoinf.2026.104064
+
 
 [Scripts](Code)
 
